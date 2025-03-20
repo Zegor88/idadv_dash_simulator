@@ -140,7 +140,8 @@ def update_locations_analysis(data):
             None
         )
         if next_upgrade:
-            interval = next_upgrade["day"] - upgrade["day"]
+            # Преобразуем интервал из дней в минуты (дни * 24 часа * 60 минут)
+            interval = (next_upgrade["day"] - upgrade["day"]) * 24
             cooldown_data[loc_id]["upgrade_intervals"].append(interval)
             cooldown_data[loc_id]["levels"].append(upgrade["new_level"])
     
@@ -155,7 +156,7 @@ def update_locations_analysis(data):
                     mode="lines+markers",
                     line=dict(width=2, color=color),
                     marker=dict(size=8, color=color),
-                    hovertemplate="Уровень: %{x}<br>Интервал: %{y:.1f} дней<extra>Локация %{customdata}</extra>",
+                    hovertemplate="Уровень: %{x}<br>Интервал: %{y:.1f} часов<extra>Локация %{customdata}</extra>",
                     legendgroup=f"Локация {loc_id}",
                     showlegend=False,  # Не показываем в легенде, так как уже есть в первом графике
                     customdata=[loc_id] * len(data["upgrade_intervals"])
@@ -184,7 +185,7 @@ def update_locations_analysis(data):
         row=2, col=1
     )
     fig.update_yaxes(
-        title_text="Интервал до следующего улучшения (дни)",
+        title_text="Интервал до следующего улучшения (часы)",
         gridcolor='lightgray',
         showgrid=True,
         row=2, col=1
