@@ -10,48 +10,68 @@ from typing import Dict, List, Tuple
 from plotly.subplots import make_subplots
 
 from idadv_dash_simulator.simulator import Simulator
-from idadv_dash_simulator.sample_config import create_sample_config
-from idadv_dash_simulator.models.config import SimulationConfig
+from idadv_dash_simulator.sample_config import create_sample_config, calculate_gold_per_sec
+from idadv_dash_simulator.models.config import SimulationConfig, EconomyConfig
 
 # Инициализация приложения Dash
-app = dash.Dash(__name__, suppress_callback_exceptions=True)
+app = dash.Dash(
+    __name__,
+    suppress_callback_exceptions=True,
+    assets_folder='assets'
+)
 
 # Определение макета приложения
 app.layout = html.Div([
+    # Добавляем стили через external_stylesheets
+    html.Link(
+        rel='stylesheet',
+        href='/assets/style.css'
+    ),
+    
     html.H1("Анализ игровой механики Indonesian Adventure"),
     
     html.Div([
         html.Div([
             html.H3("Настройки симуляции"),
-            html.Button("Запустить симуляцию", id="run-simulation-button", className="button"),
-            html.Div(id="simulation-status"),
+            
+            # Экономические параметры
+            html.H4("Параметры экономики"),
+            html.Div([
+                html.Label("Базовое значение золота в секунду:"),
+                dcc.Input(
+                    id="base-gold-per-sec-input",
+                    type="number",
+                    value=0.56,
+                    step=0.01,
+                    style={"width": "100px", "marginLeft": "10px"}
+                ),
+            ], style={"marginBottom": "10px"}),
+            
+            html.Div([
+                html.Label("Коэффициент роста золота:"),
+                dcc.Input(
+                    id="earn-coefficient-input",
+                    type="number",
+                    value=1.090824358,
+                    step=0.001,
+                    style={"width": "100px", "marginLeft": "10px"}
+                ),
+            ], style={"marginBottom": "20px"}),
             
             html.Hr(),
             
             html.H4("Параметры проверок"),
             html.Div([
                 html.Label("Частота проверок в день:"),
-                html.Span("?", id="checks-tooltip", style={
-                    "marginLeft": "10px",
-                    "cursor": "pointer",
-                    "backgroundColor": "#f0f0f0",
-                    "padding": "2px 8px",
-                    "borderRadius": "50%"
-                }),
-                dcc.Tooltip(
-                    id="checks-tooltip-content",
-                    children=["Количество раз в день, когда игрок проверяет игру и собирает накопленные ресурсы. Влияет на эффективность прогресса."],
-                    style={"maxWidth": "300px", "fontSize": "14px"}
+                dcc.Slider(
+                    id="checks-per-day-slider",
+                    min=1,
+                    max=8,
+                    step=1,
+                    value=5,
+                    marks={i: str(i) for i in range(1, 9)},
                 ),
-            ], style={"display": "flex", "alignItems": "center"}),
-            dcc.Slider(
-                id="checks-per-day-slider",
-                min=1,
-                max=8,
-                step=1,
-                value=5,
-                marks={i: str(i) for i in range(1, 9)},
-            ),
+            ]),
             
             html.Hr(),
             
@@ -65,12 +85,12 @@ app.layout = html.Div([
                 value=1.0,
                 marks={i/10: str(i/10) for i in range(5, 21, 5)},
             ),
-        ], className="settings-panel", style={"width": "30%", "padding": "20px", "backgroundColor": "#f5f5f5"}),
+            
+            html.Button("Запустить симуляцию", id="run-simulation-button", className="button"),
+            html.Div(id="simulation-status"),
+        ], style={"width": "30%", "padding": "20px"}),
         
         html.Div([
-            html.H3("Результаты симуляции"),
-            html.Div(id="simulation-results-container"),
-            
             dcc.Tabs([
                 dcc.Tab(label="Общая информация", children=[
                     html.Div([
@@ -82,97 +102,73 @@ app.layout = html.Div([
                         
                         html.Div([
                             html.H4("Ключевые метрики"),
-                            html.Div(id="key-metrics", style={
-                                "display": "grid",
-                                "gridTemplateColumns": "repeat(3, 1fr)",
-                                "gap": "20px",
-                                "padding": "20px",
-                                "backgroundColor": "#f8f9fa",
-                                "borderRadius": "8px"
-                            }),
+                            html.Div(id="key-metrics"),
                         ]),
                     ]),
                 ]),
+                
                 dcc.Tab(label="Прогресс персонажа", children=[
                     html.Div([
                         dcc.Graph(id="user-level-progress"),
                         dcc.Graph(id="resources-over-time"),
-                        html.Div([
-                            html.H4("Детальная информация о прогрессе"),
-                            dash_table.DataTable(
-                                id="progress-details-table",
-                                style_table={'overflowX': 'auto'},
-                                style_cell={
-                                    'textAlign': 'center',
-                                    'padding': '10px',
-                                },
-                                style_header={
-                                    'backgroundColor': 'rgb(230, 230, 230)',
-                                    'fontWeight': 'bold',
-                                    'border': '1px solid black'
-                                },
-                                style_data={
-                                    'border': '1px solid grey'
-                                },
-                                style_data_conditional=[
-                                    {
-                                        'if': {'row_index': 'odd'},
-                                        'backgroundColor': 'rgb(248, 248, 248)'
-                                    }
-                                ]
-                            )
-                        ], style={"marginTop": "20px"})
                     ]),
                 ]),
+                
                 dcc.Tab(label="Анализ локаций", children=[
                     html.Div([
                         dcc.Graph(id="locations-upgrades"),
                         html.Div([
                             html.H4("Временная шкала улучшений"),
-                            dash_table.DataTable(
-                                id="upgrades-timeline-table",
-                                style_table={'overflowX': 'auto'},
-                                style_cell={
-                                    'textAlign': 'center',
-                                    'padding': '10px',
-                                },
-                                style_header={
-                                    'backgroundColor': 'rgb(230, 230, 230)',
-                                    'fontWeight': 'bold',
-                                    'border': '1px solid black'
-                                },
-                                style_data={
-                                    'border': '1px solid grey'
-                                },
-                                style_data_conditional=[
-                                    {
-                                        'if': {'row_index': 'odd'},
-                                        'backgroundColor': 'rgb(248, 248, 248)'
-                                    }
-                                ]
-                            )
-                        ], style={"marginTop": "20px"})
+                            dash_table.DataTable(id="upgrades-timeline-table"),
+                        ]),
                     ]),
                 ]),
+                
                 dcc.Tab(label="Экономический баланс", children=[
                     html.Div([
-                        html.H4("Анализ доходов и расходов"),
-                        dcc.Graph(id="economy-analysis"),
-                        
+                        # 1. Базовая экономика
                         html.Div([
-                            html.H4("Эффективность улучшений (ROI)"),
-                            html.P([
-                                "ROI (Return on Investment) - показатель возврата инвестиций. ",
-                                "Рассчитывается как отношение полученной награды (опыт + ключи * 100) к стоимости улучшения. ",
-                                "Чем выше ROI, тем выгоднее улучшение."
-                            ], style={"fontSize": "14px", "color": "#666", "marginBottom": "20px"}),
-                            dcc.Graph(id="upgrades-efficiency"),
-                        ]),
+                            html.H4("Базовая экономика", className="section-title"),
+                            dcc.Graph(id="gold-per-sec-progression"),
+                            dash_table.DataTable(
+                                id="gold-per-sec-table",
+                                columns=[
+                                    {"name": "Уровень", "id": "level"},
+                                    {"name": "Gold/sec", "id": "gold_per_sec"},
+                                    {"name": "Прирост", "id": "growth"},
+                                ],
+                                style_table={"overflowX": "auto"},
+                                style_cell={"textAlign": "center"},
+                            ),
+                        ], className="section"),
                         
-                        html.H4("Скорость накопления монет по уровням"),
-                        html.Div(id="coins-per-level-table"),
-                    ]),
+                        # 2. Динамика экономики
+                        html.Div([
+                            html.H4("Динамика экономики", className="section-title"),
+                            dcc.Graph(id="economy-analysis"),
+                            html.Div([
+                                html.H5("Ключевые показатели", className="subsection-title"),
+                                html.Div(id="economy-metrics", className="metrics-container"),
+                            ]),
+                        ], className="section"),
+                        
+                        # 3. Эффективность инвестиций
+                        html.Div([
+                            html.H4("Эффективность инвестиций", className="section-title"),
+                            dcc.Graph(id="upgrades-efficiency"),
+                            html.Div([
+                                html.H5("Анализ окупаемости", className="subsection-title"),
+                                dash_table.DataTable(id="roi-analysis-table"),
+                            ]),
+                        ], className="section"),
+                        
+                    ], className="economic-balance-container", style={
+                        "padding": "20px",
+                        "backgroundColor": "#f8f9fa",
+                        "borderRadius": "8px",
+                    }),
                 ]),
+                
                 dcc.Tab(label="Темп игры", children=[
                     html.Div([
                         html.H4("Анализ времени между улучшениями"),
@@ -186,45 +182,91 @@ app.layout = html.Div([
                     ]),
                 ]),
             ]),
-        ], className="results-panel", style={"width": "70%", "padding": "20px"}),
+        ], style={"width": "70%", "padding": "20px"}),
     ], style={"display": "flex", "flexDirection": "row"}),
     
     dcc.Store(id="simulation-data-store"),
     dcc.Store(id="user-levels-store"),
 ])
 
-# Обновляем коллбек для запуска симуляции (убираем user_level)
+# Обновление графика прогрессии gold_per_sec
+@app.callback(
+    [Output("gold-per-sec-progression", "figure"),
+     Output("gold-per-sec-table", "data")],
+    [Input("base-gold-per-sec-input", "value"),
+     Input("earn-coefficient-input", "value")]
+)
+def update_gold_progression(base_gold, earn_coefficient):
+    if not base_gold or not earn_coefficient:
+        return {}, []
+    
+    levels = list(range(1, 11))
+    gold_per_sec = [calculate_gold_per_sec(base_gold, earn_coefficient, level) for level in levels]
+    
+    # Создаем DataFrame для таблицы
+    df = pd.DataFrame({
+        "level": levels,
+        "gold_per_sec": gold_per_sec,
+        "growth": ["-"] + [f"{(gold_per_sec[i]/gold_per_sec[i-1] - 1)*100:.1f}%" for i in range(1, len(gold_per_sec))]
+    })
+    
+    # Создаем график
+    fig = go.Figure()
+    
+    # Линейный график
+    fig.add_trace(go.Scatter(
+        x=levels,
+        y=gold_per_sec,
+        mode="lines+markers",
+        name="Gold/sec"
+    ))
+    
+    # Логарифмический график
+    fig.add_trace(go.Scatter(
+        x=levels,
+        y=np.log(gold_per_sec),
+        mode="lines+markers",
+        name="Log(Gold/sec)",
+        visible="legendonly"
+    ))
+    
+    fig.update_layout(
+        title="Прогрессия Gold per Second",
+        xaxis_title="Уровень персонажа",
+        yaxis_title="Gold/sec",
+        hovermode="x unified"
+    )
+    
+    return fig, df.to_dict("records")
+
+# Обновляем коллбек для запуска симуляции
 @app.callback(
     [Output("simulation-status", "children"),
      Output("simulation-data-store", "data"),
      Output("user-levels-store", "data")],
     [Input("run-simulation-button", "n_clicks")],
-    [State("cooldown-multiplier-slider", "value"),
-     State("checks-per-day-slider", "value")],
-    prevent_initial_call=True
+    [State("base-gold-per-sec-input", "value"),
+     State("earn-coefficient-input", "value"),
+     State("cooldown-multiplier-slider", "value"),
+     State("checks-per-day-slider", "value")]
 )
-def run_simulation(n_clicks, cooldown_multiplier, checks_per_day):
+def run_simulation(n_clicks, base_gold, earn_coefficient, cooldown_multiplier, checks_per_day):
     if n_clicks is None:
         return "Симуляция не запущена", None, None
     
     config = create_sample_config()
     
-    user_levels_data = {
-        level: {
-            "xp_required": level_config.xp_required,
-            "gold_per_sec": level_config.gold_per_sec,
-            "keys_reward": level_config.keys_reward
-        } for level, level_config in config.user_levels.items()
-    }
+    # Применяем экономические параметры
+    config.economy.base_gold_per_sec = base_gold
+    config.economy.earn_coefficient = earn_coefficient
     
     # Применяем множитель кулдауна
     for level in config.location_cooldowns:
         config.location_cooldowns[level] = int(config.location_cooldowns[level] * cooldown_multiplier)
     
     # Настраиваем частоту проверок
-    active_seconds = 16 * 3600
+    active_seconds = 16 * 3600  # 16 часов активного времени
     check_interval = active_seconds // checks_per_day
-    
     config.check_schedule = [
         (8 * 3600) + (i * check_interval)
         for i in range(checks_per_day)
@@ -243,13 +285,27 @@ def run_simulation(n_clicks, cooldown_multiplier, checks_per_day):
             "earn_per_sec": simulator.workflow.balance.earn_per_sec
         },
         "config": {
+            "base_gold_per_sec": base_gold,
+            "earn_coefficient": earn_coefficient,
             "cooldown_multiplier": cooldown_multiplier,
             "checks_per_day": checks_per_day
         },
         "history": result.history
     }
     
-    return f"Симуляция завершена за {result.timestamp} секунд (≈ {result.timestamp // 86400} дней)", simulation_data, user_levels_data
+    user_levels_data = {
+        level: {
+            "xp_required": level_config.xp_required,
+            "gold_per_sec": level_config.gold_per_sec,
+            "keys_reward": level_config.keys_reward
+        } for level, level_config in config.user_levels.items()
+    }
+    
+    return (
+        f"Симуляция завершена за {result.timestamp} секунд (≈ {result.timestamp // 86400} дней)",
+        simulation_data,
+        user_levels_data
+    )
 
 # Обновляем отображение ключевых метрик
 @app.callback(
@@ -1204,6 +1260,198 @@ def update_completion_info(data):
     })
     
     return completion_info, resources_info
+
+# Обновление графика анализа чувствительности
+@app.callback(
+    Output("sensitivity-analysis", "figure"),
+    [Input("base-gold-per-sec-input", "value"),
+     Input("earn-coefficient-input", "value")]
+)
+def update_sensitivity_analysis(base_gold, earn_coefficient):
+    if not base_gold or not earn_coefficient:
+        return {}
+    
+    fig = make_subplots(rows=2, cols=1,
+                        subplot_titles=("Чувствительность к базовому значению",
+                                      "Чувствительность к коэффициенту роста"))
+    
+    levels = list(range(1, 11))
+    
+    # Анализ чувствительности к базовому значению
+    base_variations = [base_gold * factor for factor in [0.8, 0.9, 1.0, 1.1, 1.2]]
+    for base in base_variations:
+        values = []
+        prev_value = base
+        for level in levels:
+            if level == 1:
+                values.append(base)
+            else:
+                prev_value = prev_value * (earn_coefficient ** (level - 1))
+                values.append(prev_value)
+        
+        fig.add_trace(
+            go.Scatter(
+                x=levels,
+                y=values,
+                name=f'Base={base:.2f}',
+                mode='lines+markers'
+            ),
+            row=1, col=1
+        )
+    
+    # Анализ чувствительности к коэффициенту роста
+    coef_variations = [earn_coefficient * factor for factor in [0.95, 0.975, 1.0, 1.025, 1.05]]
+    for coef in coef_variations:
+        values = []
+        prev_value = base_gold
+        for level in levels:
+            if level == 1:
+                values.append(base_gold)
+            else:
+                prev_value = prev_value * (coef ** (level - 1))
+                values.append(prev_value)
+        
+        fig.add_trace(
+            go.Scatter(
+                x=levels,
+                y=values,
+                name=f'Coef={coef:.3f}',
+                mode='lines+markers'
+            ),
+            row=2, col=1
+        )
+    
+    fig.update_layout(
+        height=800,
+        showlegend=True,
+        title_text="Анализ чувствительности параметров",
+    )
+    
+    fig.update_xaxes(title_text="Уровень персонажа", row=1, col=1)
+    fig.update_xaxes(title_text="Уровень персонажа", row=2, col=1)
+    fig.update_yaxes(title_text="Gold/sec", row=1, col=1)
+    fig.update_yaxes(title_text="Gold/sec", row=2, col=1)
+    
+    return fig
+
+# Обновление ключевых экономических показателей
+@app.callback(
+    Output("economy-metrics", "children"),
+    Input("simulation-data-store", "data"),
+    prevent_initial_call=True
+)
+def update_economy_metrics(data):
+    if data is None or "history" not in data:
+        return "Нет данных"
+    
+    history = data["history"]
+    if not history:
+        return "Нет данных"
+    
+    # Рассчитываем ключевые метрики
+    total_gold_spent = sum(
+        action["cost"]
+        for state in history
+        for action in state["actions"]
+        if action["type"] == "location_upgrade"
+    )
+    
+    total_gold_earned = sum(
+        state["balance"]["earn_per_sec"] * 
+        (state["timestamp"] - history[i-1]["timestamp"] if i > 0 else state["timestamp"])
+        for i, state in enumerate(history)
+    )
+    
+    avg_daily_income = total_gold_earned / (history[-1]["timestamp"] / 86400)
+    avg_daily_expenses = total_gold_spent / (history[-1]["timestamp"] / 86400)
+    
+    return html.Div([
+        html.Div([
+            html.Div([
+                html.H6("Всего заработано"),
+                html.P(f"{total_gold_earned:,.0f}", className="metric-value"),
+            ], className="metric-box"),
+            html.Div([
+                html.H6("Всего потрачено"),
+                html.P(f"{total_gold_spent:,.0f}", className="metric-value"),
+            ], className="metric-box"),
+        ], style={"display": "flex", "justifyContent": "space-around", "marginBottom": "20px"}),
+        html.Div([
+            html.Div([
+                html.H6("Средний доход в день"),
+                html.P(f"{avg_daily_income:,.0f}", className="metric-value"),
+            ], className="metric-box"),
+            html.Div([
+                html.H6("Средние расходы в день"),
+                html.P(f"{avg_daily_expenses:,.0f}", className="metric-value"),
+            ], className="metric-box"),
+        ], style={"display": "flex", "justifyContent": "space-around"}),
+    ])
+
+# Обновление таблицы анализа ROI
+@app.callback(
+    Output("roi-analysis-table", "data"),
+    Output("roi-analysis-table", "columns"),
+    Input("simulation-data-store", "data"),
+    prevent_initial_call=True
+)
+def update_roi_analysis(data):
+    if data is None or "history" not in data:
+        return [], []
+    
+    history = data["history"]
+    if not history:
+        return [], []
+    
+    # Анализируем ROI для каждой локации
+    location_roi = {}
+    for state in history:
+        for action in state["actions"]:
+            if action["type"] == "location_upgrade":
+                loc_id = action["location_id"]
+                if loc_id not in location_roi:
+                    location_roi[loc_id] = {
+                        "total_cost": 0,
+                        "total_xp": 0,
+                        "total_keys": 0,
+                        "upgrades_count": 0,
+                        "avg_cost_per_level": 0,
+                        "roi_score": 0
+                    }
+                
+                stats = location_roi[loc_id]
+                stats["total_cost"] += action["cost"]
+                stats["total_xp"] += action["reward_xp"]
+                stats["total_keys"] += action["reward_keys"]
+                stats["upgrades_count"] += 1
+                stats["avg_cost_per_level"] = stats["total_cost"] / stats["upgrades_count"]
+                stats["roi_score"] = (stats["total_xp"] + stats["total_keys"] * 100) / stats["total_cost"]
+    
+    # Формируем данные для таблицы
+    table_data = [
+        {
+            "Локация": f"Локация {loc_id}",
+            "Количество улучшений": stats["upgrades_count"],
+            "Общие затраты": f"{stats['total_cost']:,.0f}",
+            "Средняя стоимость уровня": f"{stats['avg_cost_per_level']:,.0f}",
+            "Получено XP": stats["total_xp"],
+            "Получено ключей": stats["total_keys"],
+            "ROI": f"{stats['roi_score']:.2f}"
+        }
+        for loc_id, stats in sorted(location_roi.items(), key=lambda x: int(x[0]))
+    ]
+    
+    columns = [
+        {"name": "Локация", "id": "Локация"},
+        {"name": "Улучшений", "id": "Количество улучшений"},
+        {"name": "Общие затраты", "id": "Общие затраты"},
+        {"name": "Средняя стоимость", "id": "Средняя стоимость уровня"},
+        {"name": "Получено XP", "id": "Получено XP"},
+        {"name": "Получено ключей", "id": "Получено ключей"},
+        {"name": "ROI", "id": "ROI"}
+    ]
+    
+    return table_data, columns
 
 # Запуск приложения
 if __name__ == "__main__":

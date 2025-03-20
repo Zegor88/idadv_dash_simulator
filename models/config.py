@@ -19,6 +19,11 @@ class LocationConfig:
     levels: Dict[int, LocationLevel] = field(default_factory=dict)
 
 @dataclass
+class EconomyConfig:
+    base_gold_per_sec: float = 0.56
+    earn_coefficient: float = 1.090824358
+
+@dataclass
 class UserLevelConfig:
     xp_required: int
     gold_per_sec: float
@@ -30,4 +35,5 @@ class SimulationConfig:
     location_cooldowns: Dict[int, int]
     location_rarity_config: Dict[LocationRarityType, LocationRarityConfig]
     user_levels: Dict[int, UserLevelConfig]
-    check_schedule: List[int] 
+    check_schedule: List[int]
+    economy: EconomyConfig = field(default_factory=EconomyConfig) 

@@ -1,0 +1,48 @@
+.section {
+    margin-bottom: 30px;
+    padding: 20px;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.section-title {
+    margin-bottom: 20px;
+    color: #2c3e50;
+    border-bottom: 2px solid #3498db;
+    padding-bottom: 10px;
+}
+
+.subsection-title {
+    color: #34495e;
+    margin: 15px 0;
+}
+
+.metrics-container {
+    padding: 15px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+}
+
+.metric-box {
+    background-color: white;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    text-align: center;
+    flex: 1;
+    margin: 0 10px;
+}
+
+.metric-box h6 {
+    margin: 0;
+    color: #7f8c8d;
+    font-size: 14px;
+}
+
+.metric-value {
+    margin: 10px 0 0 0;
+    font-size: 24px;
+    font-weight: bold;
+    color: #2c3e50;
+} 
