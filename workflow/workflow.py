@@ -119,13 +119,14 @@ class Workflow:
             timestamp: Время в секундах
             
         Returns:
-            str: Отформатированное время в виде "День X, ЧЧ:ММ"
+            str: Отформатированное время в виде "День X, ЧЧ:ММ:СС"
         """
         total_days = timestamp // 86400
         hours = (timestamp % 86400) // 3600
         minutes = ((timestamp % 86400) % 3600) // 60
+        seconds = ((timestamp % 86400) % 3600) % 60
         
-        return f"День {total_days + 1}, {hours:02d}:{minutes:02d}"
+        return f"День {total_days + 1}, {hours:02d}:{minutes:02d}:{seconds:02d}"
 
     def _do_actions(self, t: int, history: List[Dict] = None) -> None:
         # Check the game on specified timestamps (5 times per day with 8-hour sleep interval)
@@ -215,7 +216,8 @@ class Workflow:
                     old_t = t
                     t = next_available_time
                     game_time = self._format_game_time(t)
-                    logger.info(f"{game_time}: Ожидание окончания кулдауна ({t - old_t} сек)")
+                    next_available = self._format_game_time(next_available_time)
+                    logger.info(f"{game_time}: Ожидание окончания кулдауна ({t - old_t} сек), следующее действие будет в {next_available}")
                     
                     # После перемотки продолжаем цикл с новой проверкой доступных локаций
                     continue
@@ -257,7 +259,8 @@ class Workflow:
                         logger.info(
                             f"{game_time}: Улучшение локации {index} "
                             f"(уровень {location.current_level + 1}), "
-                            f"стоимость: {cost:.2f} золота"
+                            f"стоимость: {cost:.2f} золота, "
+                            f"cooldown: {self.cooldowns[location.current_level + 1]} сек"
                         )
                         
                         reward_xp = location.get_upgrade_xp_reward()
@@ -314,10 +317,10 @@ class Workflow:
                         next_upgrade_time = t + cooldown
                         if next_upgrade_time < session_end:
                             next_available = self._format_game_time(next_upgrade_time)
-                            logger.info(f"{game_time}: Следующее улучшение локации {index} будет доступно в {next_available} (в течение текущей сессии)")
+                            logger.info(f"{game_time}: Кулдаун: {cooldown} секунд. Следующее улучшение локации {index} будет доступно в {next_available} (в течение текущей сессии)")
                         else:
                             next_available = self._format_game_time(next_upgrade_time)
-                            logger.info(f"{game_time}: Следующее улучшение локации {index} будет доступно в {next_available} (после окончания текущей сессии)")
+                            logger.info(f"{game_time}: Кулдаун: {cooldown} секунд. Следующее улучшение локации {index} будет доступно в {next_available} (после окончания текущей сессии)")
                         
                         any_upgrade_made = True
                         break
@@ -344,7 +347,8 @@ class Workflow:
                     old_t = t
                     t = next_available_time
                     game_time = self._format_game_time(t)
-                    logger.info(f"{game_time}: Ожидание окончания кулдауна ({t - old_t} сек)")
+                    next_available = self._format_game_time(next_available_time)
+                    logger.info(f"{game_time}: Ожидание окончания кулдауна ({t - old_t} сек), следующее действие будет в {next_available}")
                     
                     # После перемотки продолжаем цикл без увеличения времени
                     continue

@@ -306,10 +306,11 @@ def update_location_history(data):
         time_seconds = int(timestamp % 86400)
         hours = time_seconds // 3600
         minutes = (time_seconds % 3600) // 60
+        seconds = (time_seconds % 3600) % 60
         
         table_data.append({
             "День": day + 1,  # День начинается с 1
-            "Время": f"{hours:02d}:{minutes:02d}",
+            "Время": f"{hours:02d}:{minutes:02d}:{seconds:02d}",
             "Локация": f"Локация {upgrade['location_id']}",
             "Новый уровень": upgrade["new_level"],
             "Золото ДО": f"{upgrade['gold_before']:,.0f}",
