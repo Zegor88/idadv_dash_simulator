@@ -3,7 +3,7 @@ import uuid
 import copy
 from typing import Dict, List
 
-from idadv_dash_simulator.models.config import UserLevelConfig, EconomyConfig
+from idadv_dash_simulator.models.config import UserLevelConfig, EconomyConfig, SimulationAlgorithm
 from idadv_dash_simulator.workflow.balance import Balance
 from idadv_dash_simulator.workflow.location import Location
 from idadv_dash_simulator.workflow.simulation_response import SimulationResponse
@@ -22,6 +22,7 @@ class Workflow:
         self.check_schedule: List[int] = []
         self.balance = Balance()
         self.economy: EconomyConfig = None  # Будет установлено при настройке
+        self.simulation_algorithm = SimulationAlgorithm.SEQUENTIAL  # По умолчанию последовательное улучшение
     
     def simulate(self, simulation_id: str = None) -> SimulationResponse:
         if not simulation_id:
@@ -222,24 +223,29 @@ class Workflow:
                     # После перемотки продолжаем цикл с новой проверкой доступных локаций
                     continue
                 
-                # Сортируем локации по индексу для последовательного улучшения
-                sorted_locations = sorted(available_locations.items())
+                # Сортируем локации в зависимости от алгоритма
+                if self.simulation_algorithm == SimulationAlgorithm.SEQUENTIAL:
+                    # Последовательное улучшение: сортируем по ID локации
+                    sorted_locations = sorted(available_locations.items())
+                else:
+                    # Первое доступное улучшение (как в Kotlin): просто берем локации в том порядке, в котором они есть
+                    sorted_locations = list(available_locations.items())
                 
                 # Флаг для отслеживания успешных улучшений
                 any_upgrade_made = False
                 
-                # Проверяем, что предыдущие локации полностью улучшены
                 for index, location in sorted_locations:
-                    # Проверяем все предыдущие локации
-                    previous_locations_maxed = True
-                    for prev_idx, prev_loc in self.locations.items():
-                        if prev_idx < index and prev_loc.available:
-                            # Если предыдущая локация не улучшена до максимума, пропускаем текущую
-                            previous_locations_maxed = False
-                            break
-                    
-                    if not previous_locations_maxed:
-                        continue
+                    # Проверяем условия в зависимости от алгоритма
+                    if self.simulation_algorithm == SimulationAlgorithm.SEQUENTIAL:
+                        # Для последовательного алгоритма проверяем, что предыдущие локации полностью улучшены
+                        previous_locations_maxed = True
+                        for prev_idx, prev_loc in self.locations.items():
+                            if prev_idx < index and prev_loc.available:
+                                previous_locations_maxed = False
+                                break
+                        
+                        if not previous_locations_maxed:
+                            continue
                     
                     # Skip locations that require higher user level
                     if self.balance.user_level < location.min_character_level:
@@ -322,8 +328,14 @@ class Workflow:
                             next_available = self._format_game_time(next_upgrade_time)
                             logger.info(f"{game_time}: Кулдаун: {cooldown} секунд. Следующее улучшение локации {index} будет доступно в {next_available} (после окончания текущей сессии)")
                         
+                        # Сразу проверяем возможность повышения уровня персонажа
+                        self._try_upgrade_character(t, current_history)
+                        
                         any_upgrade_made = True
-                        break
+                        
+                        # Для алгоритма "Первое доступное улучшение" завершаем цикл после первого успешного улучшения
+                        if self.simulation_algorithm == SimulationAlgorithm.FIRST_AVAILABLE:
+                            break
                 
                 if not any_upgrade_made:
                     # Если у пользователя есть деньги, но нет доступных локаций для улучшения,
@@ -352,68 +364,71 @@ class Workflow:
                     
                     # После перемотки продолжаем цикл без увеличения времени
                     continue
-                
-                # После успешного улучшения снова проверяем доступные локации,
-                # увеличение времени не требуется, так как мы либо находим новую локацию,
-                # либо будем ждать окончания кулдауна
-            
-            # Step 2. Check for level ups
-            if self.balance.user_level < max(self.user_levels.keys()):
-                required_xp = self.user_levels[self.balance.user_level + 1].xp_required
-                
-                # Upgrade as many times as needed
-                while self.balance.xp >= required_xp:
-                    game_time = self._format_game_time(t)
-                    # Сохраняем состояние до повышения уровня
-                    gold_before = self.balance.gold
-                    xp_before = self.balance.xp
-                    keys_before = self.balance.keys
-                    
-                    logger.info(
-                        f"{game_time}: Повышение уровня персонажа до {self.balance.user_level + 1}. "
-                        f"Новый заработок: {self.user_levels[self.balance.user_level + 1].gold_per_sec:.2f}/сек"
-                    )
-                    
-                    self.balance.user_level += 1
-                    self.balance.earn_per_sec = self.user_levels[self.balance.user_level].gold_per_sec
-                    keys_reward = self.user_levels[self.balance.user_level].keys_reward
-                    self.balance.keys += keys_reward
-                    
-                    # Добавляем запись о повышении уровня в историю
-                    if current_history is not None:
-                        action = {
-                            "type": "level_up",
-                            "timestamp": t,
-                            "description": f"Повышение уровня до {self.balance.user_level}",
-                            "old_level": self.balance.user_level - 1,
-                            "new_level": self.balance.user_level,
-                            "gold_before": gold_before,
-                            "gold_change": 0,
-                            "gold_after": self.balance.gold,
-                            "xp_before": xp_before,
-                            "xp_change": 0,
-                            "xp_after": self.balance.xp,
-                            "keys_before": keys_before,
-                            "keys_change": keys_reward,
-                            "keys_after": self.balance.keys,
-                            "new_earn_per_sec": self.balance.earn_per_sec
-                        }
-                        current_history["actions"].append(action)
-                    
-                    logger.info(
-                        f"{game_time}: Получено {keys_reward} ключей за новый уровень"
-                    )
-                    
-                    if self.balance.user_level < max(self.user_levels.keys()):
-                        required_xp = self.user_levels[self.balance.user_level + 1].xp_required
-                    else:
-                        break
             
             game_time = self._format_game_time(t)
             remaining_time = session_end - t
             if remaining_time > 0:
                 logger.info(f"{game_time}: Сессия завершена раньше (осталось {remaining_time} сек)")
             logger.info(f"=== {game_time} === Игрок завершил сессию ===\n")
+    
+    def _try_upgrade_character(self, t: int, current_history: Dict = None) -> None:
+        """
+        Проверяет возможность повышения уровня персонажа и применяет его, если возможно.
+        
+        Args:
+            t: Текущее игровое время
+            current_history: Текущее состояние для записи истории
+        """
+        if self.balance.user_level < max(self.user_levels.keys()):
+            required_xp = self.user_levels[self.balance.user_level + 1].xp_required
+            
+            # Upgrade as many times as needed
+            while self.balance.xp >= required_xp:
+                game_time = self._format_game_time(t)
+                # Сохраняем состояние до повышения уровня
+                gold_before = self.balance.gold
+                xp_before = self.balance.xp
+                keys_before = self.balance.keys
+                
+                logger.info(
+                    f"{game_time}: Повышение уровня персонажа до {self.balance.user_level + 1}. "
+                    f"Новый заработок: {self.user_levels[self.balance.user_level + 1].gold_per_sec:.2f}/сек"
+                )
+                
+                self.balance.user_level += 1
+                self.balance.earn_per_sec = self.user_levels[self.balance.user_level].gold_per_sec
+                keys_reward = self.user_levels[self.balance.user_level].keys_reward
+                self.balance.keys += keys_reward
+                
+                # Добавляем запись о повышении уровня в историю
+                if current_history is not None:
+                    action = {
+                        "type": "level_up",
+                        "timestamp": t,
+                        "description": f"Повышение уровня до {self.balance.user_level}",
+                        "old_level": self.balance.user_level - 1,
+                        "new_level": self.balance.user_level,
+                        "gold_before": gold_before,
+                        "gold_change": 0,
+                        "gold_after": self.balance.gold,
+                        "xp_before": xp_before,
+                        "xp_change": 0,
+                        "xp_after": self.balance.xp,
+                        "keys_before": keys_before,
+                        "keys_change": keys_reward,
+                        "keys_after": self.balance.keys,
+                        "new_earn_per_sec": self.balance.earn_per_sec
+                    }
+                    current_history["actions"].append(action)
+                
+                logger.info(
+                    f"{game_time}: Получено {keys_reward} ключей за новый уровень"
+                )
+                
+                if self.balance.user_level < max(self.user_levels.keys()):
+                    required_xp = self.user_levels[self.balance.user_level + 1].xp_required
+                else:
+                    break
     
     @staticmethod
     def _timestamp_to_human_readable(timestamp: int) -> str:

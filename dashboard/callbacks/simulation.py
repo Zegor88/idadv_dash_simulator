@@ -9,7 +9,7 @@ from dash import Input, Output, State, callback, html
 from idadv_dash_simulator.simulator import Simulator
 from idadv_dash_simulator.config.simulation_config import create_sample_config
 from idadv_dash_simulator.utils.economy import format_time
-from idadv_dash_simulator.models.config import EconomyConfig
+from idadv_dash_simulator.models.config import EconomyConfig, SimulationAlgorithm
 from idadv_dash_simulator.dashboard import app
 
 @app.callback(
@@ -20,9 +20,10 @@ from idadv_dash_simulator.dashboard import app
     [State("base-gold-per-sec-input", "value"),
      State("earn-coefficient-input", "value"),
      State("cooldown-multiplier-slider", "value"),
-     State("checks-per-day-slider", "value")]
+     State("checks-per-day-slider", "value"),
+     State("simulation-algorithm-radio", "value")]
 )
-def run_simulation(n_clicks, base_gold, earn_coefficient, cooldown_multiplier, checks_per_day):
+def run_simulation(n_clicks, base_gold, earn_coefficient, cooldown_multiplier, checks_per_day, simulation_algorithm):
     """
     Запускает симуляцию и возвращает результаты.
     
@@ -32,6 +33,7 @@ def run_simulation(n_clicks, base_gold, earn_coefficient, cooldown_multiplier, c
         earn_coefficient: Коэффициент роста
         cooldown_multiplier: Множитель кулдауна между улучшениями
         checks_per_day: Количество проверок в день
+        simulation_algorithm: Алгоритм симуляции улучшения локаций
         
     Returns:
         list: [статус, данные симуляции, уровни пользователя]
@@ -51,6 +53,9 @@ def run_simulation(n_clicks, base_gold, earn_coefficient, cooldown_multiplier, c
     # Обновляем множитель кулдауна
     for level, cooldown in config.location_cooldowns.items():
         config.location_cooldowns[level] = int(cooldown * cooldown_multiplier)
+    
+    # Устанавливаем алгоритм симуляции
+    config.simulation_algorithm = SimulationAlgorithm(simulation_algorithm)
     
     # Обновляем расписание проверок
     day_seconds = 86400  # секунд в дне
@@ -82,8 +87,11 @@ def run_simulation(n_clicks, base_gold, earn_coefficient, cooldown_multiplier, c
         } for level, level_config in config.user_levels.items()
     }
     
+    algorithm_name = "Последовательное улучшение" if config.simulation_algorithm == SimulationAlgorithm.SEQUENTIAL else "Первое доступное улучшение"
+    
     return html.Div([
-        html.P(f"Симуляция успешно завершена")
+        html.P(f"Симуляция успешно завершена"),
+        html.P(f"Алгоритм: {algorithm_name}")
     ]), {"history": result.history, "stop_reason": result.stop_reason}, user_levels_data
 
 

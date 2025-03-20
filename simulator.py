@@ -75,6 +75,9 @@ class Simulator:
         # Устанавливаем параметры экономики
         self.workflow.economy = self.config.economy
         
+        # Устанавливаем алгоритм симуляции
+        self.workflow.simulation_algorithm = self.config.simulation_algorithm
+        
     def run_simulation(self, simulation_id: str = None) -> SimulationResponse:
         """
         Запускает симуляцию и возвращает результат.

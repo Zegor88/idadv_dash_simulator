@@ -12,6 +12,7 @@ from idadv_dash_simulator.config.dashboard_config import (
     STYLE_SECTION, STYLE_CONTAINER, STYLE_SIDEBAR, STYLE_MAIN_CONTENT, 
     STYLE_HEADER, STYLE_BUTTON
 )
+from idadv_dash_simulator.models.config import SimulationAlgorithm
 
 def create_settings_panel():
     """
@@ -89,6 +90,28 @@ def create_settings_panel():
                     marks={i/10: str(i/10) for i in range(int(COOLDOWN_MULTIPLIER_MIN*10), int(COOLDOWN_MULTIPLIER_MAX*10) + 1, 5)},
                     tooltip={"placement": "bottom", "always_visible": True}
                 ),
+            ], style={"marginBottom": "20px"}),
+            
+            # Алгоритм симуляции
+            html.Div([
+                html.Label("Алгоритм улучшения локаций:", style={"display": "block", "marginBottom": "10px"}),
+                dcc.RadioItems(
+                    id="simulation-algorithm-radio",
+                    options=[
+                        {'label': ' Последовательное улучшение', 'value': SimulationAlgorithm.SEQUENTIAL.value},
+                        {'label': ' Первое доступное улучшение', 'value': SimulationAlgorithm.FIRST_AVAILABLE.value},
+                    ],
+                    value=SimulationAlgorithm.SEQUENTIAL.value,
+                    style={"marginBottom": "15px"},
+                    inputStyle={"marginRight": "5px"},
+                    labelStyle={"display": "block", "marginBottom": "10px"}
+                ),
+                html.Div([
+                    html.P("Последовательное улучшение: локации улучшаются по порядку, требуется полное улучшение предыдущих локаций.", 
+                           className="description-text", style={"fontSize": "12px", "color": "#666"}),
+                    html.P("Первое доступное улучшение: улучшается первая доступная локация с истекшим кулдауном.",
+                           className="description-text", style={"fontSize": "12px", "color": "#666"}),
+                ], style={"marginTop": "5px"})
             ], style={"marginBottom": "20px"}),
         ], className="settings-section"),
         

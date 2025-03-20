@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional
+from enum import Enum
 
 from .enums import LocationRarityType
 
@@ -26,6 +27,11 @@ class EconomyConfig:
     earn_coefficient: float
     game_duration: int = 1800  # 30 минут в секундах по умолчанию
 
+class SimulationAlgorithm(Enum):
+    """Алгоритмы симуляции улучшения локаций."""
+    SEQUENTIAL = "sequential"  # Последовательное улучшение
+    FIRST_AVAILABLE = "first_available"  # Первое доступное улучшение
+
 @dataclass
 class UserLevelConfig:
     xp_required: int
@@ -39,4 +45,5 @@ class SimulationConfig:
     location_rarity_config: Dict[LocationRarityType, LocationRarityConfig]
     user_levels: Dict[int, UserLevelConfig]
     check_schedule: List[int]
-    economy: EconomyConfig = field(default_factory=EconomyConfig) 
+    economy: EconomyConfig = field(default_factory=EconomyConfig)
+    simulation_algorithm: SimulationAlgorithm = SimulationAlgorithm.SEQUENTIAL  # Алгоритм симуляции 
