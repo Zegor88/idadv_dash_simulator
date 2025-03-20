@@ -15,7 +15,8 @@ from idadv_dash_simulator.utils.data_processing import (
     calculate_upgrades_per_day,
     calculate_stagnation_periods,
     extract_level_data,
-    extract_resource_data
+    extract_resource_data,
+    extract_daily_events_data
 )
 from idadv_dash_simulator.config.dashboard_config import PLOT_COLORS
 from idadv_dash_simulator.dashboard import app
@@ -407,4 +408,75 @@ def update_coins_per_level_table(user_levels_data):
     return html.Table([
         html.Thead(header),
         html.Tbody(rows)
-    ], style={"borderCollapse": "collapse", "width": "100%"}) 
+    ], style={"borderCollapse": "collapse", "width": "100%"})
+
+
+@app.callback(
+    [Output("daily-events-table", "data"),
+     Output("daily-events-table", "columns")],
+    Input("simulation-data-store", "data"),
+    prevent_initial_call=True
+)
+def update_daily_events_table(data):
+    """
+    Обновляет таблицу с ежедневными событиями игры.
+    
+    Args:
+        data: Данные симуляции
+        
+    Returns:
+        tuple: (данные таблицы, колонки таблицы)
+    """
+    if data is None or "history" not in data:
+        return [], []
+    
+    history = data["history"]
+    if not history:
+        return [], []
+    
+    # Получаем данные о событиях по дням
+    daily_events = extract_daily_events_data(history)
+    
+    if not daily_events:
+        return [], []
+    
+    # Форматируем данные для таблицы
+    table_data = []
+    
+    for event in daily_events:
+        # Форматируем диапазон уровней
+        level_range = event["level_range"]
+        if level_range[0] == 0 and level_range[1] == 0:
+            level_range_str = "-"
+        else:
+            level_range_str = f"{level_range[0]} → {level_range[1]}"
+        
+        # Добавляем строку в таблицу
+        table_data.append({
+            "День": event["day"],
+            "Входы в игру": event["sessions_count"],
+            "Время в игре (мин)": round(event["session_minutes"], 1),
+            "Повышения уровня": event["level_ups"],
+            "Диапазон уровня": level_range_str,
+            "Улучшения локаций": event["upgrades_count"],
+            "Новые локации": event["new_locations"],
+            "Золото": f"{event['gold']:,.0f}",
+            "XP": f"{event['xp']:,.0f}",
+            "Ключи": event["keys"]
+        })
+    
+    # Определяем колонки
+    columns = [
+        {"name": "День", "id": "День", "type": "numeric"},
+        {"name": "Входы в игру", "id": "Входы в игру", "type": "numeric"},
+        {"name": "Время в игре (мин)", "id": "Время в игре (мин)", "type": "numeric"},
+        {"name": "Повышения уровня", "id": "Повышения уровня", "type": "numeric"},
+        {"name": "Диапазон уровня", "id": "Диапазон уровня"},
+        {"name": "Улучшения локаций", "id": "Улучшения локаций", "type": "numeric"},
+        {"name": "Новые локации", "id": "Новые локации", "type": "numeric"},
+        {"name": "Золото", "id": "Золото"},
+        {"name": "XP", "id": "XP"},
+        {"name": "Ключи", "id": "Ключи", "type": "numeric"}
+    ]
+    
+    return table_data, columns 

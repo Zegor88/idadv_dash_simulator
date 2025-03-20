@@ -23,66 +23,107 @@ def create_sample_config() -> SimulationConfig:
     
     # Параметры экономики
     economy = EconomyConfig(
-        base_gold_per_sec=0.56,
-        earn_coefficient=1.091,  # Коэффициент для роста на 9.1%
-        game_duration=1800  # 30 минут в секундах
+        base_gold_per_sec=0.555556,  # Обновлено согласно Game balance.json
+        earn_coefficient=1.091,
+        game_duration=900
     )
-    
-    # Уровни локаций
-    location_levels = {
-        1: LocationLevel(cost=100, xp_reward=10),
-        2: LocationLevel(cost=300, xp_reward=30),
-        3: LocationLevel(cost=600, xp_reward=60),
-        4: LocationLevel(cost=1200, xp_reward=120),
-        5: LocationLevel(cost=2400, xp_reward=240),
-        6: LocationLevel(cost=4800, xp_reward=480),
-        7: LocationLevel(cost=9600, xp_reward=960),
-        8: LocationLevel(cost=19200, xp_reward=1920),
-        9: LocationLevel(cost=38400, xp_reward=3840),
-        10: LocationLevel(cost=76800, xp_reward=7680),        
-    }
     
     # Конфигурация локаций по редкости
     location_rarity_config = {
-        LocationRarityType.COMMON: LocationRarityConfig(user_level_required=1, keys_reward=1),
-        LocationRarityType.RARE: LocationRarityConfig(user_level_required=2, keys_reward=2),
-        LocationRarityType.EPIC: LocationRarityConfig(user_level_required=3, keys_reward=3),
-        LocationRarityType.LEGENDARY: LocationRarityConfig(user_level_required=4, keys_reward=5),
+        LocationRarityType.COMMON: LocationRarityConfig(
+            user_level_required=1,
+            keys_reward=1,
+            cost_growth_ratio=1.2
+        ),
+        LocationRarityType.RARE: LocationRarityConfig(
+            user_level_required=3,
+            keys_reward=2,
+            cost_growth_ratio=1.225
+        ),
+        LocationRarityType.LEGENDARY: LocationRarityConfig(
+            user_level_required=6,
+            keys_reward=3,
+            cost_growth_ratio=1.25
+        ),
     }
     
     # Локации
-    locations = {
-        1: LocationConfig(rarity=LocationRarityType.COMMON, levels=location_levels.copy()),
-        2: LocationConfig(rarity=LocationRarityType.COMMON, levels=location_levels.copy()),
-        3: LocationConfig(rarity=LocationRarityType.COMMON, levels=location_levels.copy()),
-        4: LocationConfig(rarity=LocationRarityType.COMMON, levels=location_levels.copy()),
-        5: LocationConfig(rarity=LocationRarityType.COMMON, levels=location_levels.copy()),
-        6: LocationConfig(rarity=LocationRarityType.COMMON, levels=location_levels.copy()),
-        7: LocationConfig(rarity=LocationRarityType.COMMON, levels=location_levels.copy()),
-        8: LocationConfig(rarity=LocationRarityType.COMMON, levels=location_levels.copy()),
-        9: LocationConfig(rarity=LocationRarityType.COMMON, levels=location_levels.copy()),
-        10: LocationConfig(rarity=LocationRarityType.COMMON, levels=location_levels.copy()),
-        11: LocationConfig(rarity=LocationRarityType.COMMON, levels=location_levels.copy()),
-        12: LocationConfig(rarity=LocationRarityType.COMMON, levels=location_levels.copy()),
-        13: LocationConfig(rarity=LocationRarityType.COMMON, levels=location_levels.copy()),
-        14: LocationConfig(rarity=LocationRarityType.COMMON, levels=location_levels.copy()),
-        15: LocationConfig(rarity=LocationRarityType.COMMON, levels=location_levels.copy()),
-        16: LocationConfig(rarity=LocationRarityType.COMMON, levels=location_levels.copy()),
-        17: LocationConfig(rarity=LocationRarityType.RARE, levels=location_levels.copy()),
-        18: LocationConfig(rarity=LocationRarityType.RARE, levels=location_levels.copy()),
-        19: LocationConfig(rarity=LocationRarityType.RARE, levels=location_levels.copy()),
-        20: LocationConfig(rarity=LocationRarityType.RARE, levels=location_levels.copy()),
-        21: LocationConfig(rarity=LocationRarityType.RARE, levels=location_levels.copy()),
-        22: LocationConfig(rarity=LocationRarityType.RARE, levels=location_levels.copy()),
-        23: LocationConfig(rarity=LocationRarityType.RARE, levels=location_levels.copy()),
-        24: LocationConfig(rarity=LocationRarityType.RARE, levels=location_levels.copy()),
-        25: LocationConfig(rarity=LocationRarityType.RARE, levels=location_levels.copy()),
-        26: LocationConfig(rarity=LocationRarityType.LEGENDARY, levels=location_levels.copy()),
-        27: LocationConfig(rarity=LocationRarityType.LEGENDARY, levels=location_levels.copy()),
-        28: LocationConfig(rarity=LocationRarityType.LEGENDARY, levels=location_levels.copy()),
-        29: LocationConfig(rarity=LocationRarityType.LEGENDARY, levels=location_levels.copy()),
-        30: LocationConfig(rarity=LocationRarityType.LEGENDARY, levels=location_levels.copy()),
+    locations = {}
+    
+    # Common locations (1-15)
+    common_base_costs = {
+        1: 1000, 2: 1006, 3: 1016, 4: 1017, 5: 1021,
+        6: 1031, 7: 1041, 8: 1051, 9: 1059, 10: 1065,
+        11: 1074, 12: 1081, 13: 1082, 14: 1089, 15: 1091
     }
+    
+    common_xp_rewards = {
+        1: 10, 2: 11, 3: 11, 4: 12, 5: 14,
+        6: 16, 7: 19, 8: 24, 9: 30, 10: 39,
+        11: 51, 12: 68, 13: 91, 14: 125, 15: 172,
+        16: 238, 17: 331, 18: 462, 19: 645, 20: 903
+    }
+    
+    for loc_id in range(1, 16):
+        levels = {}
+        base_cost = common_base_costs[loc_id]
+        for level in range(1, 21):
+            cost = int(base_cost * (1.2 ** (level - 1)))
+            xp_reward = common_xp_rewards[level]
+            levels[level] = LocationLevel(cost=cost, xp_reward=xp_reward)
+        locations[loc_id] = LocationConfig(
+            rarity=LocationRarityType.COMMON,
+            levels=levels
+        )
+    
+    # Rare locations (16-25)
+    rare_base_costs = {
+        16: 2728, 17: 2730, 18: 2736, 19: 2739, 20: 2747,
+        21: 2752, 22: 2759, 23: 2762, 24: 2763, 25: 2773
+    }
+    
+    rare_xp_rewards = {
+        1: 20, 2: 21, 3: 23, 4: 25, 5: 28,
+        6: 33, 7: 39, 8: 48, 9: 60, 10: 77,
+        11: 101, 12: 135, 13: 183, 14: 250, 15: 344,
+        16: 477, 17: 663, 18: 924, 19: 1291, 20: 1806
+    }
+    
+    for loc_id in range(16, 26):
+        levels = {}
+        base_cost = rare_base_costs[loc_id]
+        for level in range(1, 21):
+            cost = int(base_cost * (1.225 ** (level - 1)))
+            xp_reward = rare_xp_rewards[level]
+            levels[level] = LocationLevel(cost=cost, xp_reward=xp_reward)
+        locations[loc_id] = LocationConfig(
+            rarity=LocationRarityType.RARE,
+            levels=levels
+        )
+    
+    # Legendary locations (26-30)
+    legendary_base_costs = {
+        26: 4160, 27: 4165, 28: 4166, 29: 4171, 30: 4177
+    }
+    
+    legendary_xp_rewards = {
+        1: 40, 2: 42, 3: 45, 4: 50, 5: 56,
+        6: 65, 7: 78, 8: 95, 9: 120, 10: 154,
+        11: 202, 12: 270, 13: 366, 14: 500, 15: 689,
+        16: 953, 17: 1325, 18: 1847, 19: 2581, 20: 3612
+    }
+    
+    for loc_id in range(26, 31):
+        levels = {}
+        base_cost = legendary_base_costs[loc_id]
+        for level in range(1, 21):
+            cost = int(base_cost * (1.25 ** (level - 1)))
+            xp_reward = legendary_xp_rewards[level]
+            levels[level] = LocationLevel(cost=cost, xp_reward=xp_reward)
+        locations[loc_id] = LocationConfig(
+            rarity=LocationRarityType.LEGENDARY,
+            levels=levels
+        )
     
     # Кулдауны для уровней локаций (в секундах)
     location_cooldowns = {
@@ -108,34 +149,27 @@ def create_sample_config() -> SimulationConfig:
         20: 14400,  # 4 часа        
     }
     
-    # Уровни пользователя с автоматическим расчетом gold_per_sec
+    # Уровни пользователя
     user_levels = {
-        level: UserLevelConfig(
-            xp_required=xp_required,
-            gold_per_sec=calculate_gold_per_sec(economy.base_gold_per_sec, economy.earn_coefficient, level),
-            keys_reward=keys_reward
-        )
-        for level, (xp_required, keys_reward) in enumerate([
-            (0, 0),        # level 1
-            (100, 5),      # level 2
-            (300, 10),     # level 3
-            (900, 15),     # level 4
-            (2700, 25),    # level 5
-            (8100, 35),    # level 6
-            (24300, 45),   # level 7
-            (72900, 55),   # level 8
-            (218700, 65),  # level 9
-            (656100, 75),  # level 10
-        ], 1)  # start enumeration from 1
+        1: UserLevelConfig(xp_required=0, gold_per_sec=0.555556, keys_reward=0),
+        2: UserLevelConfig(xp_required=1000, gold_per_sec=0.606014, keys_reward=2),
+        3: UserLevelConfig(xp_required=3200, gold_per_sec=0.721094, keys_reward=3),
+        4: UserLevelConfig(xp_required=5800, gold_per_sec=0.935958, keys_reward=4),
+        5: UserLevelConfig(xp_required=10500, gold_per_sec=1.325183, keys_reward=5),
+        6: UserLevelConfig(xp_required=19000, gold_per_sec=2.046680, keys_reward=6),
+        7: UserLevelConfig(xp_required=34000, gold_per_sec=3.448092, keys_reward=7),
+        8: UserLevelConfig(xp_required=61000, gold_per_sec=6.336693, keys_reward=8),
+        9: UserLevelConfig(xp_required=110000, gold_per_sec=12.702853, keys_reward=9),
+        10: UserLevelConfig(xp_required=200000, gold_per_sec=27.777600, keys_reward=10),
     }
     
-    # Расписание проверок
+    # Расписание проверок (в секундах от начала дня)
     check_schedule = [
-        8 * 3600,     # 8:00
-        12 * 3600,    # 12:00
-        16 * 3600,    # 16:00
-        20 * 3600,    # 20:00
-        22 * 3600,    # 22:00
+        0,          # 00:00
+        28800,      # 08:00
+        43200,      # 12:00
+        57600,      # 16:00
+        72000,      # 20:00
     ]
     
     return SimulationConfig(

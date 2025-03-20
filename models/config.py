@@ -12,6 +12,7 @@ class LocationLevel:
 class LocationRarityConfig:
     user_level_required: int
     keys_reward: int
+    cost_growth_ratio: float = 1.0
 
 @dataclass
 class LocationConfig:

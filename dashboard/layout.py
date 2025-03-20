@@ -271,6 +271,33 @@ def create_pace_tab():
             html.H4("Статистика прогресса", className="tab-section-title"),
             html.Div(id="progression-stats", className="stats-container"),
         ], className="tab-section"),
+        
+        html.Div([
+            html.H4("События по дням", className="tab-section-title"),
+            dash_table.DataTable(
+                id="daily-events-table",
+                style_table={'overflowX': 'auto'},
+                style_cell={
+                    'textAlign': 'center',
+                    'padding': '10px',
+                    'minWidth': '80px',
+                    'maxWidth': '180px',
+                    'whiteSpace': 'normal',
+                },
+                style_header={
+                    'backgroundColor': 'rgb(230, 230, 230)',
+                    'fontWeight': 'bold'
+                },
+                style_data_conditional=[
+                    {
+                        'if': {'row_index': 'odd'},
+                        'backgroundColor': 'rgb(248, 248, 248)'
+                    }
+                ],
+                page_size=10,
+                sort_action='native',
+            ),
+        ], className="tab-section"),
     ])
 
 def create_tabs():

@@ -5,6 +5,15 @@
 from typing import Dict, List, Any, Tuple, Optional
 import pandas as pd
 
+from idadv_dash_simulator.config.simulation_config import create_sample_config
+
+# Получаем game_duration из конфигурации
+DEFAULT_GAME_DURATION = create_sample_config().economy.game_duration  # В секундах
+DEFAULT_SESSION_MINUTES = DEFAULT_GAME_DURATION / 60  # В минутах
+
+# Получаем расписание проверок из конфигурации
+DEFAULT_CHECK_SCHEDULE = create_sample_config().check_schedule  # Расписание логинов
+
 # Извлекает данные о локациях из истории симуляции
 def extract_location_data(history: List[Dict[str, Any]]) -> Dict[int, Dict[str, Any]]:
     """
@@ -219,4 +228,112 @@ def calculate_upgrades_per_day(upgrades_timeline: List[Dict[str, Any]]) -> Dict[
         day = int(upgrade["timestamp"] // 86400)
         upgrades_per_day[day] = upgrades_per_day.get(day, 0) + 1
     
-    return upgrades_per_day 
+    return upgrades_per_day
+
+def extract_daily_events_data(history: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """
+    Извлекает и группирует игровые события по дням.
+    
+    Args:
+        history: История симуляции
+        
+    Returns:
+        List: Список данных о событиях по дням
+    """
+    if not history:
+        return []
+    
+    # Инициализируем данные по дням
+    daily_data = {}
+    
+    # Получаем временную шкалу улучшений и повышений уровня
+    upgrades_by_day = {}
+    level_ups_by_day = {}
+    new_locations_by_day = {}
+    
+    # Количество входов в игру в день по расписанию
+    logins_per_day = len(DEFAULT_CHECK_SCHEDULE)
+    
+    # Обработка данных по дням
+    for state in history:
+        # Извлекаем день из таймстампа
+        day = int(state["timestamp"] // 86400) + 1  # Дни начинаются с 1
+        
+        # Инициализируем данные для дня, если их ещё нет
+        if day not in daily_data:
+            daily_data[day] = {
+                "day": day,
+                "sessions_count": logins_per_day,  # Фиксированное количество входов из расписания
+                "session_minutes": logins_per_day * DEFAULT_SESSION_MINUTES,  # Время = количество сессий * длительность сессии
+                "level_ups": 0,
+                "level_range": (0, 0),
+                "upgrades_count": 0,
+                "new_locations": 0,
+                "gold": 0,
+                "xp": 0,
+                "keys": 0
+            }
+        
+        # Добавляем ресурсы в конце дня
+        daily_data[day]["gold"] = state["balance"]["gold"]
+        daily_data[day]["xp"] = state["balance"]["xp"]
+        daily_data[day]["keys"] = state["balance"]["keys"]
+        
+        # Обрабатываем действия
+        for action in state["actions"]:
+            action_day = int(action["timestamp"] // 86400) + 1
+            
+            if action_day not in daily_data:
+                daily_data[action_day] = {
+                    "day": action_day,
+                    "sessions_count": logins_per_day,  # Фиксированное количество входов из расписания
+                    "session_minutes": logins_per_day * DEFAULT_SESSION_MINUTES,
+                    "level_ups": 0,
+                    "level_range": (0, 0),
+                    "upgrades_count": 0,
+                    "new_locations": 0,
+                    "gold": 0,
+                    "xp": 0,
+                    "keys": 0
+                }
+            
+            # Улучшения локаций
+            if action["type"] == "location_upgrade":
+                daily_data[action_day]["upgrades_count"] += 1
+                
+                # Отслеживаем новые локации (уровень 1)
+                if action["new_level"] == 1:
+                    daily_data[action_day]["new_locations"] += 1
+                
+                # Сохраняем данные об улучшениях для каждой локации
+                loc_id = action["location_id"]
+                if loc_id not in upgrades_by_day:
+                    upgrades_by_day[loc_id] = {}
+                
+                if action_day not in upgrades_by_day[loc_id]:
+                    upgrades_by_day[loc_id][action_day] = {"min": action["new_level"], "max": action["new_level"]}
+                else:
+                    upgrades_by_day[loc_id][action_day]["min"] = min(upgrades_by_day[loc_id][action_day]["min"], action["new_level"])
+                    upgrades_by_day[loc_id][action_day]["max"] = max(upgrades_by_day[loc_id][action_day]["max"], action["new_level"])
+            
+            # Повышения уровня
+            elif action["type"] == "level_up":
+                daily_data[action_day]["level_ups"] += 1
+                
+                # Отслеживаем диапазон уровней
+                if action_day not in level_ups_by_day:
+                    level_ups_by_day[action_day] = {"min": action["old_level"], "max": action["new_level"]}
+                else:
+                    level_ups_by_day[action_day]["min"] = min(level_ups_by_day[action_day]["min"], action["old_level"])
+                    level_ups_by_day[action_day]["max"] = max(level_ups_by_day[action_day]["max"], action["new_level"])
+    
+    # Добавляем диапазоны уровней
+    for day, level_data in level_ups_by_day.items():
+        daily_data[day]["level_range"] = (level_data["min"], level_data["max"])
+    
+    # Формируем итоговый список
+    result = []
+    for day in sorted(daily_data.keys()):
+        result.append(daily_data[day])
+    
+    return result 
