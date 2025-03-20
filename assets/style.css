@@ -1,3 +1,142 @@
+/* Основные стили */
+body {
+    font-family: 'Roboto', 'Segoe UI', 'Arial', sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f5f5f5;
+    color: #333;
+}
+
+/* Заголовки */
+h1, h2, h3, h4, h5, h6 {
+    font-weight: 500;
+    margin-top: 0;
+}
+
+/* Контейнеры и разделы */
+.tab-section {
+    background-color: white;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 25px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+}
+
+.tab-section-title {
+    border-bottom: 2px solid #f0f0f0;
+    padding-bottom: 10px;
+    margin-top: 0;
+    margin-bottom: 20px;
+    color: #343a40;
+}
+
+.metrics-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin-top: 15px;
+}
+
+.stats-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 15px;
+    margin-top: 15px;
+}
+
+/* Карточки информации */
+.info-card {
+    background-color: #f8f9fa;
+    border-radius: 6px;
+    padding: 15px;
+    min-width: 200px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+/* Настройки панели */
+.settings-section {
+    margin-bottom: 20px;
+}
+
+.settings-section-title {
+    color: #495057;
+    margin-bottom: 15px;
+    font-size: 1.1rem;
+}
+
+/* Стили для вкладок */
+.custom-tabs {
+    margin-bottom: 20px;
+}
+
+.custom-tab {
+    padding: 12px 24px;
+    color: #495057;
+    border-bottom: 3px solid transparent;
+    transition: border-color 0.3s;
+}
+
+.custom-tab:hover {
+    color: #007bff;
+    border-bottom-color: #cfe2ff;
+}
+
+.custom-tab-selected {
+    color: #007bff;
+    border-bottom-color: #007bff;
+    font-weight: 500;
+}
+
+/* Кнопки */
+.button {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background-color 0.2s;
+}
+
+.button:hover {
+    background-color: #0069d9;
+}
+
+/* Слайдеры */
+.rc-slider-handle {
+    border-color: #007bff;
+    background-color: #007bff;
+}
+
+.rc-slider-track {
+    background-color: #cfe2ff;
+}
+
+/* Вспомогательные классы */
+.mb-2 {
+    margin-bottom: 10px;
+}
+
+.mb-3 {
+    margin-bottom: 15px;
+}
+
+.mt-2 {
+    margin-top: 10px;
+}
+
+.mt-3 {
+    margin-top: 15px;
+}
+
+/* Адаптивные стили */
+@media (max-width: 992px) {
+    .flex-column-mobile {
+        flex-direction: column;
+    }
+}
+
 .section {
     margin-bottom: 30px;
     padding: 20px;
@@ -16,12 +155,6 @@
 .subsection-title {
     color: #34495e;
     margin: 15px 0;
-}
-
-.metrics-container {
-    padding: 15px;
-    background-color: #f8f9fa;
-    border-radius: 8px;
 }
 
 .metric-box {

@@ -1,3 +1,7 @@
+"""
+Конфигурационный файл для настроек симуляции.
+"""
+
 from idadv_dash_simulator.models.enums import LocationRarityType
 from idadv_dash_simulator.models.config import (
     LocationLevel,
@@ -7,28 +11,15 @@ from idadv_dash_simulator.models.config import (
     SimulationConfig,
     EconomyConfig
 )
-
-def calculate_gold_per_sec(base_gold: float, earn_coefficient: float, level: int) -> float:
-    """Рассчитывает значение gold_per_sec для заданного уровня.
-    
-    Args:
-        base_gold: Базовое значение золота для первого уровня
-        earn_coefficient: Коэффициент роста (например, 1.091 для роста на 9.1%)
-        level: Уровень персонажа
-    
-    Returns:
-        float: Значение gold_per_sec для указанного уровня
-    """
-    if level == 1:
-        return base_gold
-        
-    # Получаем значение предыдущего уровня
-    prev_value = calculate_gold_per_sec(base_gold, earn_coefficient, level - 1)
-    # Умножаем предыдущее значение на коэффициент
-    return prev_value * (earn_coefficient** (level - 1))
+from idadv_dash_simulator.utils.economy import calculate_gold_per_sec
 
 def create_sample_config() -> SimulationConfig:
-    """Создает пример конфигурации для симуляции."""
+    """
+    Создает пример конфигурации для симуляции.
+    
+    Returns:
+        SimulationConfig: Конфигурация симуляции с значениями по умолчанию
+    """
     
     # Параметры экономики
     economy = EconomyConfig(

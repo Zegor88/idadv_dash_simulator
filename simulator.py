@@ -1,3 +1,9 @@
+"""
+Симулятор игровой механики Indonesian Adventure.
+
+Обеспечивает симуляцию игрового процесса с заданной конфигурацией.
+"""
+
 import logging
 from typing import Dict, List, Optional
 
@@ -7,7 +13,7 @@ from idadv_dash_simulator.workflow.location import Location
 from idadv_dash_simulator.workflow.workflow import Workflow
 from idadv_dash_simulator.workflow.simulation_response import SimulationResponse
 
-from idadv_dash_simulator.sample_config import create_sample_config
+from idadv_dash_simulator.config.simulation_config import create_sample_config
 
 logging.basicConfig(
     level=logging.INFO,
@@ -16,6 +22,13 @@ logging.basicConfig(
 logger = logging.getLogger("Simulator")
 
 class Simulator:
+    """
+    Симулятор игрового процесса Indonesian Adventure.
+    
+    Позволяет симулировать игровой процесс с заданной конфигурацией,
+    отслеживая прогресс, балансы и улучшения локаций.
+    """
+    
     def __init__(self, config: Optional[SimulationConfig] = None):
         """
         Инициализирует симулятор с указанной конфигурацией.
@@ -27,7 +40,12 @@ class Simulator:
         self.workflow = Workflow()
         
     def setup_workflow(self) -> None:
-        """Настраивает рабочий процесс (workflow) для симуляции."""
+        """
+        Настраивает рабочий процесс (workflow) для симуляции.
+        
+        Инициализирует локации, кулдауны, уровни пользователя и расписание проверок
+        на основе конфигурации.
+        """
         
         # Добавляем все локации
         self.workflow.locations.clear()
@@ -62,7 +80,7 @@ class Simulator:
             simulation_id: Опциональный ID симуляции. Если не указан, генерируется автоматически.
             
         Returns:
-            Результат симуляции (SimulationResponse).
+            SimulationResponse: Результат симуляции с историей прогресса.
         """
         self.setup_workflow()
         return self.workflow.simulate(simulation_id)
