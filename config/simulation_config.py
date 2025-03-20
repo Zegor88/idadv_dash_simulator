@@ -24,7 +24,8 @@ def create_sample_config() -> SimulationConfig:
     # Параметры экономики
     economy = EconomyConfig(
         base_gold_per_sec=0.56,
-        earn_coefficient=1.091  # Коэффициент для роста на 9.1%
+        earn_coefficient=1.091,  # Коэффициент для роста на 9.1%
+        game_duration=1800  # 30 минут в секундах
     )
     
     # Уровни локаций
@@ -34,6 +35,11 @@ def create_sample_config() -> SimulationConfig:
         3: LocationLevel(cost=600, xp_reward=60),
         4: LocationLevel(cost=1200, xp_reward=120),
         5: LocationLevel(cost=2400, xp_reward=240),
+        6: LocationLevel(cost=4800, xp_reward=480),
+        7: LocationLevel(cost=9600, xp_reward=960),
+        8: LocationLevel(cost=19200, xp_reward=1920),
+        9: LocationLevel(cost=38400, xp_reward=3840),
+        10: LocationLevel(cost=76800, xp_reward=7680),        
     }
     
     # Конфигурация локаций по редкости
@@ -49,8 +55,13 @@ def create_sample_config() -> SimulationConfig:
         1: LocationConfig(rarity=LocationRarityType.COMMON, levels=location_levels.copy()),
         2: LocationConfig(rarity=LocationRarityType.COMMON, levels=location_levels.copy()),
         3: LocationConfig(rarity=LocationRarityType.COMMON, levels=location_levels.copy()),
-        4: LocationConfig(rarity=LocationRarityType.RARE, levels=location_levels.copy()),
-        5: LocationConfig(rarity=LocationRarityType.LEGENDARY, levels=location_levels.copy()),
+        4: LocationConfig(rarity=LocationRarityType.COMMON, levels=location_levels.copy()),
+        5: LocationConfig(rarity=LocationRarityType.COMMON, levels=location_levels.copy()),
+        6: LocationConfig(rarity=LocationRarityType.RARE, levels=location_levels.copy()),
+        7: LocationConfig(rarity=LocationRarityType.RARE, levels=location_levels.copy()),
+        8: LocationConfig(rarity=LocationRarityType.RARE, levels=location_levels.copy()),
+        9: LocationConfig(rarity=LocationRarityType.RARE, levels=location_levels.copy()),
+        10: LocationConfig(rarity=LocationRarityType.LEGENDARY, levels=location_levels.copy()),
     }
     
     # Кулдауны для уровней локаций (в секундах)
@@ -60,6 +71,11 @@ def create_sample_config() -> SimulationConfig:
         3: 14400,     # 4 часа
         4: 28800,     # 8 часов
         5: 43200,     # 12 часов
+        6: 86400,     # 24 часа
+        7: 172800,    # 48 часов
+        8: 345600,    # 96 часов
+        9: 691200,    # 192 часов
+        10: 1382400,  # 384 часов
     }
     
     # Уровни пользователя с автоматическим расчетом gold_per_sec

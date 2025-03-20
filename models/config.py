@@ -20,8 +20,10 @@ class LocationConfig:
 
 @dataclass
 class EconomyConfig:
-    base_gold_per_sec: float = 0.56
-    earn_coefficient: float = 1.090824358
+    """Конфигурация экономики игры."""
+    base_gold_per_sec: float
+    earn_coefficient: float
+    game_duration: int = 1800  # 30 минут в секундах по умолчанию
 
 @dataclass
 class UserLevelConfig:

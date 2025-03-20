@@ -72,6 +72,9 @@ class Simulator:
         self.workflow.check_schedule.clear()
         self.workflow.check_schedule.extend(self.config.check_schedule)
         
+        # Устанавливаем параметры экономики
+        self.workflow.economy = self.config.economy
+        
     def run_simulation(self, simulation_id: str = None) -> SimulationResponse:
         """
         Запускает симуляцию и возвращает результат.

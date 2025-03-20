@@ -145,21 +145,23 @@ def create_progress_tab():
 
 def create_locations_tab():
     """
-    Создает вкладку с анализом локаций.
+    Создает вкладку анализа локаций.
     
     Returns:
-        html.Div: Содержимое вкладки
+        html.Div: Контейнер с содержимым вкладки
     """
     return html.Div([
+        # График анализа локаций
         html.Div([
             html.H4("Анализ локаций", className="tab-section-title"),
             dcc.Graph(id="locations-upgrades"),
         ], className="tab-section"),
         
+        # Таблица истории улучшений локаций
         html.Div([
-            html.H4("Временная шкала улучшений", className="tab-section-title"),
+            html.H4("История улучшений локаций", className="tab-section-title"),
             dash_table.DataTable(
-                id="upgrades-timeline-table",
+                id="location-history-table",
                 style_header={
                     'backgroundColor': '#f8f9fa',
                     'fontWeight': 'bold',
@@ -169,24 +171,24 @@ def create_locations_tab():
                     'padding': '8px 15px',
                     'textAlign': 'center',
                     'backgroundColor': 'white',
-                    'border': '1px solid #ddd'
+                    'border': '1px solid #ddd',
+                    'minWidth': '100px',
+                    'maxWidth': '180px',
+                    'whiteSpace': 'normal'
                 },
-                style_data_conditional=[
-                    {
-                        'if': {'row_index': 'odd'},
-                        'backgroundColor': '#f9f9f9'
-                    }
-                ]
+                style_table={
+                    'overflowX': 'auto'
+                }
             ),
         ], className="tab-section"),
     ])
 
 def create_economy_tab():
     """
-    Создает вкладку с экономическим анализом.
+    Создает вкладку экономического анализа.
     
     Returns:
-        html.Div: Содержимое вкладки
+        html.Div: Контейнер с содержимым вкладки
     """
     return html.Div([
         # 1. Базовая экономика
@@ -227,27 +229,23 @@ def create_economy_tab():
             ]),
         ], className="tab-section"),
         
-        # 3. История улучшений
+        # 3. Баланс золота
         html.Div([
-            html.H4("История улучшений", className="tab-section-title"),
-            dcc.Graph(id="upgrades-efficiency"),
-            html.Div([
-                html.H5("История улучшений", className="subsection-title"),
-                dash_table.DataTable(
-                    id="upgrades-history-table",
-                    style_header={
-                        'backgroundColor': '#f8f9fa',
-                        'fontWeight': 'bold',
-                        'border': '1px solid #ddd'
-                    },
-                    style_cell={
-                        'padding': '8px 15px',
-                        'textAlign': 'center',
-                        'backgroundColor': 'white',
-                        'border': '1px solid #ddd'
-                    }
-                ),
-            ]),
+            html.H4("Баланс золота", className="tab-section-title"),
+            dash_table.DataTable(
+                id="upgrades-history-table",
+                style_header={
+                    'backgroundColor': '#f8f9fa',
+                    'fontWeight': 'bold',
+                    'border': '1px solid #ddd'
+                },
+                style_cell={
+                    'padding': '8px 15px',
+                    'textAlign': 'center',
+                    'backgroundColor': 'white',
+                    'border': '1px solid #ddd'
+                }
+            ),
         ], className="tab-section"),
     ])
 

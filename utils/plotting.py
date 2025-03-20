@@ -16,7 +16,8 @@ def create_subplot_figure(
     row_heights: Optional[List[float]] = None,
     vertical_spacing: float = 0.15,
     horizontal_spacing: float = 0.1,
-    height: int = 600
+    height: int = 600,
+    specs: Optional[List[List[Dict[str, Any]]]] = None
 ) -> go.Figure:
     """
     Создает фигуру с подграфиками.
@@ -29,6 +30,7 @@ def create_subplot_figure(
         vertical_spacing: Вертикальный интервал между графиками
         horizontal_spacing: Горизонтальный интервал между графиками
         height: Высота фигуры
+        specs: Спецификации для каждого подграфика (тип, вторичная ось и т.д.)
         
     Returns:
         go.Figure: Фигура с подграфиками
@@ -39,7 +41,8 @@ def create_subplot_figure(
         subplot_titles=subplot_titles,
         row_heights=row_heights,
         vertical_spacing=vertical_spacing,
-        horizontal_spacing=horizontal_spacing
+        horizontal_spacing=horizontal_spacing,
+        specs=specs
     )
     
     # Применяем базовые настройки

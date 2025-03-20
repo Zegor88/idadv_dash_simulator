@@ -47,9 +47,9 @@ def extract_location_data(history: List[Dict[str, Any]]) -> Dict[int, Dict[str, 
             if action["type"] == "location_upgrade":
                 loc_id = int(action["location_id"])
                 locations_data[loc_id]["upgrades_count"] += 1
-                locations_data[loc_id]["total_cost"] += action["cost"]
-                locations_data[loc_id]["total_xp"] += action["reward_xp"]
-                locations_data[loc_id]["total_keys"] += action["reward_keys"]
+                locations_data[loc_id]["total_cost"] += -action["gold_change"]  # Стоимость - это отрицательное изменение золота
+                locations_data[loc_id]["total_xp"] += action["xp_change"]
+                locations_data[loc_id]["total_keys"] += action["keys_change"]
                 locations_data[loc_id]["upgrade_times"].append(action["timestamp"])
     
     return locations_data
@@ -68,19 +68,22 @@ def extract_upgrades_timeline(history: List[Dict[str, Any]]) -> List[Dict[str, A
     upgrades_timeline = []
     
     for state in history:
-        current_gold = state["balance"]["gold"]  # Текущий баланс золота
-        
         for action in state["actions"]:
             if action["type"] == "location_upgrade":
                 upgrades_timeline.append({
                     "timestamp": action["timestamp"],
                     "location_id": int(action["location_id"]),
-                    "cost": action["cost"],
                     "new_level": action["new_level"],
-                    "reward_xp": action["reward_xp"],
-                    "reward_keys": action["reward_keys"],
-                    "day": action["timestamp"] / 86400,
-                    "gold_before": current_gold + action["cost"]  # Баланс до покупки = текущий + стоимость
+                    "gold_before": action["gold_before"],
+                    "gold_change": action["gold_change"],
+                    "gold_after": action["gold_after"],
+                    "xp_before": action["xp_before"],
+                    "xp_change": action["xp_change"],
+                    "xp_after": action["xp_after"],
+                    "keys_before": action["keys_before"],
+                    "keys_change": action["keys_change"],
+                    "keys_after": action["keys_after"],
+                    "day": action["timestamp"] / 86400
                 })
     
     # Сортируем по времени

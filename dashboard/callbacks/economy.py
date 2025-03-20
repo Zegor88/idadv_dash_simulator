@@ -9,7 +9,7 @@ from dash import Input, Output, State, callback, html
 
 from idadv_dash_simulator.utils.economy import calculate_gold_per_sec
 from idadv_dash_simulator.utils.plotting import create_subplot_figure, add_time_series, create_bar_chart
-from idadv_dash_simulator.utils.data_processing import extract_upgrades_timeline
+from idadv_dash_simulator.utils.data_processing import extract_upgrades_timeline, extract_resource_data
 from idadv_dash_simulator.config.dashboard_config import PLOT_COLORS, STYLE_METRICS_BOX, STYLE_FLEX_ROW
 from idadv_dash_simulator.dashboard import app
 
@@ -103,261 +103,207 @@ def update_gold_progression(base_gold, earn_coefficient):
 
 
 @app.callback(
-    [Output("economy-analysis", "figure"),
-     Output("upgrades-efficiency", "figure")],
+    Output("economy-analysis", "figure"),
     Input("simulation-data-store", "data"),
     prevent_initial_call=True
 )
 def update_economy_analysis(data):
     """
-    Обновляет графики экономического анализа.
+    Обновляет анализ экономики.
     
     Args:
         data: Данные симуляции
         
     Returns:
-        list: [экономический анализ, эффективность улучшений]
+        go.Figure: График с анализом экономики
     """
     if data is None or "history" not in data:
-        return {}, {}
+        return {}
     
     history = data["history"]
     if not history:
-        return {}, {}
+        return {}
     
-    # Извлекаем данные по ресурсам
+    # Создаем график с двумя подграфиками
+    fig = create_subplot_figure(
+        rows=2, cols=1,
+        subplot_titles=(
+            "Баланс экономики персонажа",
+            "Доходы и расходы по дням"
+        ),
+        vertical_spacing=0.2,
+        height=800,
+        row_heights=[0.6, 0.4]
+    )
+    
+    # Собираем все действия из истории для первого графика (баланс золота)
+    balance_data = []
+    
+    for state in history:
+        for action in state["actions"]:
+            # Вычисляем день и время
+            timestamp = action["timestamp"]
+            day = timestamp / 86400
+            hours = (timestamp % 86400) // 3600
+            minutes = ((timestamp % 86400) % 3600) // 60
+            
+            # Добавляем баланс после действия
+            balance_data.append({
+                "day": day,
+                "time": f"{hours:02d}:{minutes:02d}",
+                "balance": action["gold_after"]
+            })
+    
+    # Если нет данных в истории действий, используем состояния
+    if not balance_data:
+        for state in history:
+            timestamp = state["timestamp"]
+            hours = (timestamp % 86400) // 3600
+            minutes = ((timestamp % 86400) % 3600) // 60
+            balance_data.append({
+                "day": timestamp / 86400,
+                "time": f"{hours:02d}:{minutes:02d}",
+                "balance": state["balance"]["gold"]
+            })
+    
+    # Сортируем по времени
+    balance_data = sorted(balance_data, key=lambda x: x["day"])
+    
+    # 1. График баланса золота
+    if balance_data:
+        df_balance = pd.DataFrame(balance_data)
+        
+        # Добавляем график баланса
+        fig.add_trace(
+            go.Scatter(
+                x=df_balance["day"],
+                y=df_balance["balance"],
+                name="Баланс золота",
+                line=dict(color="#FFD700", width=2),
+                mode="lines",
+                hovertemplate="День %{x:.1f}<br>Время: %{customdata}<br>Баланс: %{y:,.0f} золота<extra></extra>",
+                customdata=df_balance["time"]
+            ),
+            row=1, col=1
+        )
+        
+        # Настраиваем оси для первого графика
+        fig.update_xaxes(
+            title_text="День игры",
+            gridcolor='lightgray',
+            showgrid=True,
+            row=1, col=1
+        )
+        fig.update_yaxes(
+            title_text="Баланс золота",
+            gridcolor='lightgray',
+            showgrid=True,
+            tickformat=",.0f",
+            row=1, col=1
+        )
+    
+    # Извлекаем данные об улучшениях для второго графика
+    upgrades_timeline = extract_upgrades_timeline(history)
+    
+    # Извлекаем данные о ресурсах для расчетов
     resources_data = []
     for state in history:
         resources_data.append({
-            "day": state["timestamp"] / 86400,
+            "timestamp": state["timestamp"],
             "gold": state["balance"]["gold"],
             "earn_per_sec": state["balance"]["earn_per_sec"],
+            "day": state["timestamp"] / 86400,
+            "earn_per_hour": state["balance"]["earn_per_sec"] * 3600,
             "earn_per_day": state["balance"]["earn_per_sec"] * 86400
         })
     
-    # Извлекаем данные по улучшениям
-    upgrades_timeline = extract_upgrades_timeline(history)
-    
-    # Вычисляем расходы по дням
-    expenses_by_day = {}
-    for upgrade in upgrades_timeline:
-        day = int(upgrade["day"])
-        expenses_by_day[day] = expenses_by_day.get(day, 0) + upgrade["cost"]
-    
-    # Вычисляем доходы по дням
+    # 2. График доходов и расходов по дням
+    # Рассчитываем доходы по дням
     income_by_day = {}
-    
     for i in range(1, len(resources_data)):
         day = int(resources_data[i]["day"])
         prev_day = int(resources_data[i-1]["day"])
         
+        # Если остаемся в том же дне, пропускаем
         if day == prev_day:
             continue
-            
-        avg_earn_per_day = (resources_data[i]["earn_per_day"] + resources_data[i-1]["earn_per_day"]) / 2
-        income_by_day[prev_day] = avg_earn_per_day
-    
-    # График для экономического анализа
-    economy_fig = create_subplot_figure(
-        rows=2, cols=1,
-        subplot_titles=("Баланс золота", "Доходы и расходы по дням"),
-        vertical_spacing=0.3
-    )
-    
-    # Добавляем баланс золота
-    days = [r["day"] for r in resources_data]
-    gold = [r["gold"] for r in resources_data]
-    
-    add_time_series(
-        economy_fig, 
-        x=days, 
-        y=gold, 
-        name="Золото", 
-        color=PLOT_COLORS["gold"],
-        row=1, col=1
-    )
-    
-    # Добавляем доходы и расходы
-    all_days = sorted(set(list(income_by_day.keys()) + list(expenses_by_day.keys())))
-    
-    income_days = []
-    income_values = []
-    expense_days = []
-    expense_values = []
-    balance_days = []
-    balance_values = []
-    
-    for day in all_days:
-        income = income_by_day.get(day, 0)
-        expense = expenses_by_day.get(day, 0)
-        balance = income - expense
         
-        income_days.append(day)
-        income_values.append(income)
-        
-        expense_days.append(day)
-        expense_values.append(expense)
-        
-        balance_days.append(day)
-        balance_values.append(balance)
+        # Средний заработок в секунду за предыдущий день
+        avg_earn = resources_data[i-1]["earn_per_sec"]
+        # Доход за день (в секундах)
+        day_income = avg_earn * 86400
+        income_by_day[prev_day] = day_income
     
-    add_time_series(
-        economy_fig, 
-        x=income_days, 
-        y=income_values, 
-        name="Доход", 
-        color=PLOT_COLORS["income"],
-        row=2, col=1
-    )
-    
-    add_time_series(
-        economy_fig, 
-        x=expense_days, 
-        y=expense_values, 
-        name="Расход", 
-        color=PLOT_COLORS["expenses"],
-        row=2, col=1
-    )
-    
-    add_time_series(
-        economy_fig, 
-        x=balance_days, 
-        y=balance_values, 
-        name="Баланс", 
-        color=PLOT_COLORS["balance"],
-        row=2, col=1
-    )
-    
-    economy_fig.update_layout(
-        height=800,  # Увеличиваем высоту для лучшей читаемости
-        plot_bgcolor='white',
-        paper_bgcolor='white',
-        font={'size': 12},
-        title={
-            'text': "Экономический анализ",
-            'y': 0.95,
-            'x': 0.5,
-            'xanchor': 'center',
-            'yanchor': 'top',
-            'font': {'size': 20}
-        }
-    )
-    
-    # Обновляем оси для графика баланса золота
-    economy_fig.update_xaxes(
-        title_text="День игры",
-        title_font={'size': 14},
-        tickfont={'size': 12},
-        gridcolor='lightgray',
-        row=1, col=1
-    )
-    economy_fig.update_yaxes(
-        title_text="Баланс золота",
-        title_font={'size': 14},
-        tickfont={'size': 12},
-        gridcolor='lightgray',
-        tickformat='.0f',
-        row=1, col=1
-    )
-
-    # Обновляем оси для графика доходов и расходов
-    economy_fig.update_xaxes(
-        title_text="День игры",
-        title_font={'size': 14},
-        tickfont={'size': 12},
-        gridcolor='lightgray',
-        row=2, col=1
-    )
-    economy_fig.update_yaxes(
-        title_text="Золото в день",
-        title_font={'size': 14},
-        tickfont={'size': 12},
-        gridcolor='lightgray',
-        tickformat='.0f',
-        row=2, col=1
-    )
-    
-    # График для анализа эффективности улучшений
-    efficiency_fig = go.Figure()
-
-    # Собираем данные для графика эффективности
-    locations = {}
-
+    # Рассчитываем расходы по дням
+    expenses_by_day = {}
     for upgrade in upgrades_timeline:
-        loc_id = upgrade["location_id"]
-        
-        if loc_id not in locations:
-            locations[loc_id] = {
-                "levels": [],
-                "costs": []
-            }
-        
-        locations[loc_id]["levels"].append(upgrade["new_level"])
-        locations[loc_id]["costs"].append(upgrade["cost"])
-
-    # Отображаем стоимость улучшений
-    for loc_id, loc_data in locations.items():
-        x_labels = [f"Лок {loc_id} (ур.{level})" for level in loc_data["levels"]]
-        
-        # Добавляем график стоимости улучшений как линию с точками
-        efficiency_fig.add_trace(
-            go.Scatter(
-                x=x_labels,
-                y=loc_data["costs"],
-                name=f"Локация {loc_id}",
-                mode='lines+markers',
-                line=dict(width=2),
-                marker=dict(size=8),
-                hovertemplate="Уровень: %{x}<br>Стоимость: %{y:,.0f}<extra></extra>"
-            )
-        )
-
-    # Обновляем настройки графика
-    efficiency_fig.update_layout(
-        height=500,  # Уменьшаем высоту, так как теперь один график
-        plot_bgcolor='white',
-        paper_bgcolor='white',
-        font={'size': 12},
-        title={
-            'text': "Стоимость улучшений локаций",
-            'y': 0.95,
-            'x': 0.5,
-            'xanchor': 'center',
-            'yanchor': 'top',
-            'font': {'size': 20}
-        },
-        showlegend=True,
-        legend={
-            'orientation': 'h',
-            'yanchor': 'bottom',
-            'y': -0.2,  # Размещаем легенду под графиком
-            'xanchor': 'center',
-            'x': 0.5,
-            'font': {'size': 12},
-            'traceorder': 'normal'
-        },
-        margin={'b': 100},  # Увеличиваем нижний отступ для легенды
-        hovermode='x unified'
+        day = int(upgrade["day"])
+        expenses_by_day[day] = expenses_by_day.get(day, 0) - upgrade["gold_change"]  # Стоимость - это отрицательное изменение золота
+    
+    # Преобразуем в DataFrame
+    days = sorted(set(income_by_day.keys()) | set(expenses_by_day.keys()))
+    df_economy = pd.DataFrame({
+        "day": days,
+        "income": [income_by_day.get(day, 0) for day in days],
+        "expenses": [expenses_by_day.get(day, 0) for day in days]
+    })
+    
+    # Создаем bar chart для доходов и расходов
+    fig.add_trace(
+        go.Bar(
+            x=df_economy["day"],
+            y=df_economy["income"],
+            name="Доход за день",
+            marker_color="#76EE00",
+            hovertemplate="День %{x}<br>Доход: %{y:,.0f} золота<extra></extra>"
+        ),
+        row=2, col=1
     )
-
-    # Обновляем оси для графика стоимости улучшений
-    efficiency_fig.update_xaxes(
-        title_text="Уровень локации",
-        title_font={'size': 14},
-        tickfont={'size': 12},
-        gridcolor='lightgray',
-        showgrid=True
+    
+    fig.add_trace(
+        go.Bar(
+            x=df_economy["day"],
+            y=df_economy["expenses"],
+            name="Расходы за день",
+            marker_color="#FF6347",
+            hovertemplate="День %{x}<br>Расходы: %{y:,.0f} золота<extra></extra>"
+        ),
+        row=2, col=1
     )
-    efficiency_fig.update_yaxes(
-        title_text="Стоимость улучшения (золото)",
-        title_font={'size': 14},
-        tickfont={'size': 12},
+    
+    # Настраиваем оси для второго графика
+    fig.update_xaxes(
+        title_text="День игры",
         gridcolor='lightgray',
         showgrid=True,
-        tickformat='.0f'
+        dtick=1,  # Шаг сетки в 1 день
+        row=2, col=1
     )
-
-    return economy_fig, efficiency_fig
+    fig.update_yaxes(
+        title_text="Золото",
+        gridcolor='lightgray',
+        showgrid=True,
+        tickformat=",.0f",
+        row=2, col=1
+    )
+    
+    # Обновляем общий layout
+    fig.update_layout(
+        showlegend=True,
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="center",
+            x=0.5
+        ),
+        margin=dict(t=100, r=50, b=50, l=50),
+        plot_bgcolor='white',
+        paper_bgcolor='white',
+        hovermode='x unified'
+    )
+    
+    return fig
 
 
 @app.callback(
@@ -389,7 +335,7 @@ def update_economy_metrics(data):
     for state in history:
         for action in state["actions"]:
             if action["type"] == "location_upgrade":
-                total_expenses += action["cost"]
+                total_expenses += -action["gold_change"]  # Стоимость - это отрицательное изменение золота
     
     # Приблизительный расчет дохода
     for i in range(1, len(history)):
@@ -423,7 +369,7 @@ def update_economy_metrics(data):
 )
 def update_upgrades_history(data):
     """
-    Обновляет таблицу истории улучшений.
+    Обновляет таблицу баланса золота.
     
     Args:
         data: Данные симуляции
@@ -438,55 +384,51 @@ def update_upgrades_history(data):
     if not history:
         return [], []
     
-    # Собираем данные об улучшениях
-    upgrades_timeline = extract_upgrades_timeline(history)
+    # Собираем все действия из истории
+    actions_data = []
     
-    if not upgrades_timeline:
-        return [], []
-    
-    # Группируем по локациям и уровням
-    upgrades_data = []
-    
-    for upgrade in upgrades_timeline:
-        gold_before = upgrade["gold_before"]
-        cost = upgrade["cost"]
-        gold_after = gold_before - cost
-        
-        # Вычисляем день и время
-        day = int(upgrade['day'])
-        time_decimal = upgrade['day'] - day
-        hours = int(time_decimal * 24)
-        minutes = int((time_decimal * 24 - hours) * 60)
-        
-        upgrades_data.append({
-            "День": f"{day}",
-            "Время": f"{hours:02d}:{minutes:02d}",
-            "Локация": f"Локация {upgrade['location_id']}",
-            "Уровень": upgrade["new_level"],
-            "Золото до покупки": f"{gold_before:,.0f}",
-            "Стоимость, золото": f"{cost:,.0f}",
-            "Золото после покупки": f"{gold_after:,.0f}",
-            "Награда XP": upgrade["reward_xp"],
-            "Награда ключи": upgrade["reward_keys"]
-        })
+    for state in history:
+        for action in state["actions"]:
+            # Вычисляем день и время
+            timestamp = action["timestamp"]
+            day = timestamp // 86400
+            time_seconds = timestamp % 86400
+            hours = time_seconds // 3600
+            minutes = (time_seconds % 3600) // 60
+            
+            # Формируем описание события в зависимости от типа
+            if action["type"] == "passive_income":
+                event = action["description"]
+            elif action["type"] == "location_upgrade":
+                event = f"Улучшение локации {action['location_id']} (ур.{action['new_level']})"
+            elif action["type"] == "level_up":
+                event = f"Повышение уровня до {action['new_level']}"
+            else:
+                continue
+            
+            actions_data.append({
+                "День": day + 1,  # День начинается с 1
+                "Время": f"{hours:02d}:{minutes:02d}",
+                "Событие": event,
+                "Золото ДО": f"{action['gold_before']:,.0f}",
+                "Изменение": f"{action['gold_change']:,.0f}",
+                "Баланс": f"{action['gold_after']:,.0f}"
+            })
     
     # Сортируем по дню и времени
-    upgrades_data = sorted(upgrades_data, key=lambda x: (int(x["День"]), x["Время"]))
+    actions_data = sorted(actions_data, key=lambda x: (x["День"], x["Время"]))
     
     # Определяем столбцы
     columns = [
         {"name": "День", "id": "День"},
         {"name": "Время", "id": "Время"},
-        {"name": "Локация", "id": "Локация"},
-        {"name": "Уровень", "id": "Уровень"},
-        {"name": "Золото до покупки", "id": "Золото до покупки"},
-        {"name": "Стоимость, золото", "id": "Стоимость, золото"},
-        {"name": "Золото после покупки", "id": "Золото после покупки"},
-        # {"name": "Награда XP", "id": "Награда XP"},
-        # {"name": "Награда ключи", "id": "Награда ключи"}
+        {"name": "Событие", "id": "Событие"},
+        {"name": "Золото ДО", "id": "Золото ДО"},
+        {"name": "Изменение", "id": "Изменение"},
+        {"name": "Баланс", "id": "Баланс"}
     ]
     
-    return upgrades_data, columns
+    return actions_data, columns
 
 
 @app.callback(

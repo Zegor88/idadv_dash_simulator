@@ -83,9 +83,8 @@ def run_simulation(n_clicks, base_gold, earn_coefficient, cooldown_multiplier, c
     }
     
     return html.Div([
-        html.P(f"Симуляция успешно завершена за {format_time(result.timestamp)}"),
-        html.P(f"Достигнут уровень персонажа: {simulator.workflow.balance.user_level}")
-    ]), {"history": result.history}, user_levels_data
+        html.P(f"Симуляция успешно завершена")
+    ]), {"history": result.history, "stop_reason": result.stop_reason}, user_levels_data
 
 
 @app.callback(
@@ -119,9 +118,9 @@ def update_completion_info(data):
     hours = (timestamp % 86400) // 3600
     
     completion_info = html.Div([
-        html.H5("Время прохождения:"),
-        html.P(f"{days} дней, {hours} часов"),
-        html.P(f"({timestamp} секунд)")
+        html.H5("Общая информация:"),
+        html.P(f"Время прохождения: {days} дней, {hours} часов ({timestamp} секунд)"),
+        html.P(f"Причина остановки: {data.get('stop_reason', 'Не указана')}")
     ])
     
     resources_info = html.Div([
@@ -166,7 +165,7 @@ def update_key_metrics(data):
         for action in state["actions"]:
             if action["type"] == "location_upgrade":
                 location_upgrades += 1
-                total_spent += action["cost"]
+                total_spent += -action["gold_change"]  # Стоимость - это отрицательное изменение золота
     
     # Собираем данные о стагнации
     days_with_upgrades = set()
