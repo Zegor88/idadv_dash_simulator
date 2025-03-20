@@ -190,15 +190,35 @@ class Workflow:
             
             # Определяем конец игровой сессии
             session_end = t + self.economy.game_duration
+            game_time = self._format_game_time(t)
+            logger.info(f"{game_time}: Длительность сессии: {self.economy.game_duration} сек (до {self._format_game_time(session_end)})")
             
-            # Step 1. Try to upgrade locations
-            while t < session_end:  # Продолжаем улучшения в течение игровой сессии
+            # Step 1. Try to upgrade locations while session is active
+            while t < session_end:  # Продолжаем цикл пока не истечет время сессии
+                # Проверяем, есть ли локации готовые для улучшения прямо сейчас
                 available_locations = {idx: loc for idx, loc in self.locations.items() 
                                     if loc.available and loc.cooldown_until <= t}
                 
                 if not available_locations:
-                    logger.info(f"{game_time}: Нет доступных локаций для улучшения")
-                    break  # Если нет доступных локаций, завершаем сессию
+                    # Нет доступных локаций прямо сейчас, проверяем, будут ли они в рамках сессии
+                    locations_in_cooldown = {idx: loc for idx, loc in self.locations.items() 
+                                          if loc.available and loc.cooldown_until > t and loc.cooldown_until < session_end}
+                    
+                    if not locations_in_cooldown:
+                        logger.info(f"{game_time}: Нет локаций, которые станут доступны в течение этой сессии")
+                        break  # Выходим из цикла, если нет локаций, которые станут доступны в рамках сессии
+                    
+                    # Находим ближайшее время окончания кулдауна
+                    next_available_time = min(loc.cooldown_until for loc in locations_in_cooldown.values())
+                    
+                    # Перематываем время вперед до окончания ближайшего кулдауна
+                    old_t = t
+                    t = next_available_time
+                    game_time = self._format_game_time(t)
+                    logger.info(f"{game_time}: Ожидание окончания кулдауна ({t - old_t} сек)")
+                    
+                    # После перемотки продолжаем цикл с новой проверкой доступных локаций
+                    continue
                 
                 # Сортируем локации по индексу для последовательного улучшения
                 sorted_locations = sorted(available_locations.items())
@@ -289,17 +309,49 @@ class Workflow:
                         
                         # Set the cooldown
                         location.cooldown_until = t + cooldown
-                        next_available = self._format_game_time(t + cooldown)
-                        logger.info(f"{game_time}: Следующее улучшение локации {index} будет доступно в {next_available}")
+                        
+                        # Проверяем, успеем ли мы выполнить следующее улучшение в рамках сессии
+                        next_upgrade_time = t + cooldown
+                        if next_upgrade_time < session_end:
+                            next_available = self._format_game_time(next_upgrade_time)
+                            logger.info(f"{game_time}: Следующее улучшение локации {index} будет доступно в {next_available} (в течение текущей сессии)")
+                        else:
+                            next_available = self._format_game_time(next_upgrade_time)
+                            logger.info(f"{game_time}: Следующее улучшение локации {index} будет доступно в {next_available} (после окончания текущей сессии)")
                         
                         any_upgrade_made = True
                         break
                 
                 if not any_upgrade_made:
-                    logger.info(f"{game_time}: Недостаточно ресурсов для улучшений")
-                    break  # Если не удалось сделать улучшений, завершаем сессию
+                    # Если у пользователя есть деньги, но нет доступных локаций для улучшения,
+                    # значит есть какие-то ограничения (например, предыдущие локации не максимальны)
+                    game_time = self._format_game_time(t)
+                    logger.info(f"{game_time}: Нет доступных локаций для улучшения в данный момент")
+                    
+                    # Проверяем, есть ли локации в кулдауне, которые могут стать доступными в рамках сессии
+                    locations_in_cooldown = {idx: loc for idx, loc in self.locations.items() 
+                                          if loc.available and loc.cooldown_until > t and loc.cooldown_until < session_end}
+                    
+                    if not locations_in_cooldown:
+                        # Если нет локаций, которые могут стать доступными до конца сессии, выходим
+                        logger.info(f"{game_time}: Больше улучшений в этой сессии не будет")
+                        break
+                    
+                    # Находим ближайшее время окончания кулдауна
+                    next_available_time = min(loc.cooldown_until for loc in locations_in_cooldown.values())
+                    
+                    # Перематываем время вперед до окончания ближайшего кулдауна
+                    old_t = t
+                    t = next_available_time
+                    game_time = self._format_game_time(t)
+                    logger.info(f"{game_time}: Ожидание окончания кулдауна ({t - old_t} сек)")
+                    
+                    # После перемотки продолжаем цикл без увеличения времени
+                    continue
                 
-                t += 1  # Увеличиваем время только если были улучшения
+                # После успешного улучшения снова проверяем доступные локации,
+                # увеличение времени не требуется, так как мы либо находим новую локацию,
+                # либо будем ждать окончания кулдауна
             
             # Step 2. Check for level ups
             if self.balance.user_level < max(self.user_levels.keys()):
@@ -351,9 +403,12 @@ class Workflow:
                     if self.balance.user_level < max(self.user_levels.keys()):
                         required_xp = self.user_levels[self.balance.user_level + 1].xp_required
                     else:
-                        return
+                        break
             
             game_time = self._format_game_time(t)
+            remaining_time = session_end - t
+            if remaining_time > 0:
+                logger.info(f"{game_time}: Сессия завершена раньше (осталось {remaining_time} сек)")
             logger.info(f"=== {game_time} === Игрок завершил сессию ===\n")
     
     @staticmethod

@@ -57,25 +57,55 @@ def create_sample_config() -> SimulationConfig:
         3: LocationConfig(rarity=LocationRarityType.COMMON, levels=location_levels.copy()),
         4: LocationConfig(rarity=LocationRarityType.COMMON, levels=location_levels.copy()),
         5: LocationConfig(rarity=LocationRarityType.COMMON, levels=location_levels.copy()),
-        6: LocationConfig(rarity=LocationRarityType.RARE, levels=location_levels.copy()),
-        7: LocationConfig(rarity=LocationRarityType.RARE, levels=location_levels.copy()),
-        8: LocationConfig(rarity=LocationRarityType.RARE, levels=location_levels.copy()),
-        9: LocationConfig(rarity=LocationRarityType.RARE, levels=location_levels.copy()),
-        10: LocationConfig(rarity=LocationRarityType.LEGENDARY, levels=location_levels.copy()),
+        6: LocationConfig(rarity=LocationRarityType.COMMON, levels=location_levels.copy()),
+        7: LocationConfig(rarity=LocationRarityType.COMMON, levels=location_levels.copy()),
+        8: LocationConfig(rarity=LocationRarityType.COMMON, levels=location_levels.copy()),
+        9: LocationConfig(rarity=LocationRarityType.COMMON, levels=location_levels.copy()),
+        10: LocationConfig(rarity=LocationRarityType.COMMON, levels=location_levels.copy()),
+        11: LocationConfig(rarity=LocationRarityType.COMMON, levels=location_levels.copy()),
+        12: LocationConfig(rarity=LocationRarityType.COMMON, levels=location_levels.copy()),
+        13: LocationConfig(rarity=LocationRarityType.COMMON, levels=location_levels.copy()),
+        14: LocationConfig(rarity=LocationRarityType.COMMON, levels=location_levels.copy()),
+        15: LocationConfig(rarity=LocationRarityType.COMMON, levels=location_levels.copy()),
+        16: LocationConfig(rarity=LocationRarityType.COMMON, levels=location_levels.copy()),
+        17: LocationConfig(rarity=LocationRarityType.RARE, levels=location_levels.copy()),
+        18: LocationConfig(rarity=LocationRarityType.RARE, levels=location_levels.copy()),
+        19: LocationConfig(rarity=LocationRarityType.RARE, levels=location_levels.copy()),
+        20: LocationConfig(rarity=LocationRarityType.RARE, levels=location_levels.copy()),
+        21: LocationConfig(rarity=LocationRarityType.RARE, levels=location_levels.copy()),
+        22: LocationConfig(rarity=LocationRarityType.RARE, levels=location_levels.copy()),
+        23: LocationConfig(rarity=LocationRarityType.RARE, levels=location_levels.copy()),
+        24: LocationConfig(rarity=LocationRarityType.RARE, levels=location_levels.copy()),
+        25: LocationConfig(rarity=LocationRarityType.RARE, levels=location_levels.copy()),
+        26: LocationConfig(rarity=LocationRarityType.LEGENDARY, levels=location_levels.copy()),
+        27: LocationConfig(rarity=LocationRarityType.LEGENDARY, levels=location_levels.copy()),
+        28: LocationConfig(rarity=LocationRarityType.LEGENDARY, levels=location_levels.copy()),
+        29: LocationConfig(rarity=LocationRarityType.LEGENDARY, levels=location_levels.copy()),
+        30: LocationConfig(rarity=LocationRarityType.LEGENDARY, levels=location_levels.copy()),
     }
     
     # Кулдауны для уровней локаций (в секундах)
     location_cooldowns = {
-        1: 3600,      # 1 час
-        2: 7200,      # 2 часа
-        3: 14400,     # 4 часа
-        4: 28800,     # 8 часов
-        5: 43200,     # 12 часов
-        6: 86400,     # 24 часа
-        7: 172800,    # 48 часов
-        8: 345600,    # 96 часов
-        9: 691200,    # 192 часов
-        10: 1382400,  # 384 часов
+        1: 10,      # 10 секунд
+        2: 20,      # 20 секунд
+        3: 20,      # 20 секунд
+        4: 30,      # 30 секунд
+        5: 45,      # 45 секунд
+        6: 60,      # 1 минута
+        7: 90,      # 1.5 минуты
+        8: 150,     # 2.5 минуты
+        9: 210,     # 3.5 минуты
+        10: 300,    # 5 минут
+        11: 450,    # 7.5 минут
+        12: 600,    # 10 минут
+        13: 900,    # 15 минут
+        14: 1200,   # 20 минут
+        15: 1800,   # 30 минут
+        16: 2700,   # 45 минут
+        17: 3600,   # 1 час
+        18: 5400,   # 1.5 часа
+        19: 7200,   # 2 часа
+        20: 14400,  # 4 часа        
     }
     
     # Уровни пользователя с автоматическим расчетом gold_per_sec
