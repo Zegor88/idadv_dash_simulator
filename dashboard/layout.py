@@ -198,6 +198,8 @@ def create_economy_tab():
                 columns=[
                     {"name": "Уровень", "id": "level"},
                     {"name": "Gold/sec", "id": "gold_per_sec"},
+                    {"name": "Gold/hour", "id": "gold_per_hour"},
+                    {"name": "Gold/day", "id": "gold_per_day"},
                     {"name": "Прирост", "id": "growth"},
                 ],
                 style_table={"overflowX": "auto", "borderRadius": "5px", "boxShadow": "0 2px 4px rgba(0,0,0,0.05)"},
@@ -225,14 +227,14 @@ def create_economy_tab():
             ]),
         ], className="tab-section"),
         
-        # 3. Эффективность инвестиций
+        # 3. История улучшений
         html.Div([
-            html.H4("Эффективность инвестиций", className="tab-section-title"),
+            html.H4("История улучшений", className="tab-section-title"),
             dcc.Graph(id="upgrades-efficiency"),
             html.Div([
                 html.H5("История улучшений", className="subsection-title"),
                 dash_table.DataTable(
-                    id="roi-analysis-table",
+                    id="upgrades-history-table",
                     style_header={
                         'backgroundColor': '#f8f9fa',
                         'fontWeight': 'bold',

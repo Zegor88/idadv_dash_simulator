@@ -92,6 +92,8 @@ def update_gold_progression(base_gold, earn_coefficient):
         table_data.append({
             "level": level,
             "gold_per_sec": f"{value:.4f}",
+            "gold_per_hour": f"{value * 3600:.2f}",
+            "gold_per_day": f"{value * 86400:.2f}",
             "growth": growth
         })
         
@@ -383,8 +385,6 @@ def update_economy_metrics(data):
     # Собираем данные об экономике
     total_income = 0
     total_expenses = 0
-    start_earn_per_sec = history[0]["balance"]["earn_per_sec"]
-    final_earn_per_sec = history[-1]["balance"]["earn_per_sec"]
     
     for state in history:
         for action in state["actions"]:
@@ -400,11 +400,7 @@ def update_economy_metrics(data):
         # Доход за период
         period_income = avg_earn * time_diff
         total_income += period_income
-    
-    # Рассчитываем показатели
-    earn_growth = ((final_earn_per_sec / start_earn_per_sec) - 1) * 100
-    economy_efficiency = (total_income / total_expenses) * 100 if total_expenses > 0 else 0
-    
+   
     return html.Div([
         html.Div([
             html.H3(f"{total_income:,.0f}"),
@@ -416,27 +412,18 @@ def update_economy_metrics(data):
             html.P("Всего потрачено")
         ], style=STYLE_METRICS_BOX),
         
-        html.Div([
-            html.H3(f"{earn_growth:,.1f}%"),
-            html.P("Рост заработка")
-        ], style=STYLE_METRICS_BOX),
-        
-        html.Div([
-            html.H3(f"{economy_efficiency:,.1f}%"),
-            html.P("Эффективность экономики")
-        ], style=STYLE_METRICS_BOX)
     ], style=STYLE_FLEX_ROW)
 
 
 @app.callback(
-    Output("roi-analysis-table", "data"),
-    Output("roi-analysis-table", "columns"),
+    Output("upgrades-history-table", "data"),
+    Output("upgrades-history-table", "columns"),
     Input("simulation-data-store", "data"),
     prevent_initial_call=True
 )
-def update_roi_analysis(data):
+def update_upgrades_history(data):
     """
-    Обновляет таблицу анализа улучшений.
+    Обновляет таблицу истории улучшений.
     
     Args:
         data: Данные симуляции
@@ -465,8 +452,15 @@ def update_roi_analysis(data):
         cost = upgrade["cost"]
         gold_after = gold_before - cost
         
+        # Вычисляем день и время
+        day = int(upgrade['day'])
+        time_decimal = upgrade['day'] - day
+        hours = int(time_decimal * 24)
+        minutes = int((time_decimal * 24 - hours) * 60)
+        
         upgrades_data.append({
-            "День": f"{upgrade['day']:.1f}",
+            "День": f"{day}",
+            "Время": f"{hours:02d}:{minutes:02d}",
             "Локация": f"Локация {upgrade['location_id']}",
             "Уровень": upgrade["new_level"],
             "Золото до покупки": f"{gold_before:,.0f}",
@@ -476,19 +470,20 @@ def update_roi_analysis(data):
             "Награда ключи": upgrade["reward_keys"]
         })
     
-    # Сортируем по дню (хронологически)
-    upgrades_data = sorted(upgrades_data, key=lambda x: float(x["День"]))
+    # Сортируем по дню и времени
+    upgrades_data = sorted(upgrades_data, key=lambda x: (int(x["День"]), x["Время"]))
     
     # Определяем столбцы
     columns = [
         {"name": "День", "id": "День"},
+        {"name": "Время", "id": "Время"},
         {"name": "Локация", "id": "Локация"},
         {"name": "Уровень", "id": "Уровень"},
         {"name": "Золото до покупки", "id": "Золото до покупки"},
         {"name": "Стоимость, золото", "id": "Стоимость, золото"},
         {"name": "Золото после покупки", "id": "Золото после покупки"},
-        {"name": "Награда XP", "id": "Награда XP"},
-        {"name": "Награда ключи", "id": "Награда ключи"}
+        # {"name": "Награда XP", "id": "Награда XP"},
+        # {"name": "Награда ключи", "id": "Награда ключи"}
     ]
     
     return upgrades_data, columns
