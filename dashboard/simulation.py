@@ -427,7 +427,7 @@ def update_key_metrics(data, auto_run_data):
             html.H3(f"{days_without_upgrades_percent:.1f}%"),
             html.P(f"Дней без улучшений ({days_without_upgrades} из {total_days})")
         ], style=style_box)
-    ], style={"display": "flex", "flexDirection": "row", "justifyContent": "space-around", "flexWrap": "wrap"})
+    ], style={"display": "flex", "flexDirection": "row", "justifyContent": "space-around", "flexWrap": "wrap"}) 
 
 @app.callback(
     Output("check-times-display", "children"),
