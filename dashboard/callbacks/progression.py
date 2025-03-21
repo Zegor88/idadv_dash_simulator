@@ -18,6 +18,7 @@ from idadv_dash_simulator.utils.data_processing import (
     extract_resource_data,
     extract_daily_events_data
 )
+from idadv_dash_simulator.utils.export import export_daily_events_table
 from idadv_dash_simulator.config.dashboard_config import PLOT_COLORS
 from idadv_dash_simulator.dashboard import app
 
@@ -25,19 +26,38 @@ from idadv_dash_simulator.dashboard import app
     [Output("progression-pace", "figure"),
      Output("stagnation-analysis", "figure"),
      Output("progression-stats", "children")],
-    Input("simulation-data-store", "data"),
+    [Input("simulation-data-store", "data"),
+     Input("auto-run-store", "data")],
     prevent_initial_call=True
 )
-def update_progression_analysis(data):
+def update_progression_analysis(data, auto_run_data):
     """
     Обновляет анализ темпа прогрессии.
     
     Args:
         data: Данные симуляции
+        auto_run_data: Данные о состоянии автозапуска
         
     Returns:
         list: [график темпа, график стагнации, статистика]
     """
+    # Проверяем, была ли запущена симуляция
+    if not auto_run_data or not auto_run_data.get("auto_run"):
+        empty_figure = go.Figure()
+        empty_figure.update_layout(
+            title="Запустите симуляцию для отображения данных",
+            xaxis={"visible": False},
+            yaxis={"visible": False},
+            annotations=[{
+                "text": "Нет данных. Нажмите кнопку 'Запустить симуляцию'",
+                "xref": "paper",
+                "yref": "paper",
+                "showarrow": False,
+                "font": {"size": 16}
+            }]
+        )
+        return empty_figure, empty_figure, "Запустите симуляцию для отображения данных"
+    
     if data is None or "history" not in data:
         return {}, {}, "Нет данных"
     
@@ -206,19 +226,38 @@ def update_progression_analysis(data):
 
 @app.callback(
     Output("user-level-progress", "figure"),
-    Input("simulation-data-store", "data"),
+    [Input("simulation-data-store", "data"),
+     Input("auto-run-store", "data")],
     prevent_initial_call=True
 )
-def update_user_level_progress(data):
+def update_user_level_progress(data, auto_run_data):
     """
     Обновляет график прогресса уровня пользователя.
     
     Args:
         data: Данные симуляции
+        auto_run_data: Данные о состоянии автозапуска
         
     Returns:
         go.Figure: График прогресса уровня
     """
+    # Проверяем, была ли запущена симуляция
+    if not auto_run_data or not auto_run_data.get("auto_run"):
+        empty_figure = go.Figure()
+        empty_figure.update_layout(
+            title="Запустите симуляцию для отображения данных",
+            xaxis={"visible": False},
+            yaxis={"visible": False},
+            annotations=[{
+                "text": "Нет данных. Нажмите кнопку 'Запустить симуляцию'",
+                "xref": "paper",
+                "yref": "paper",
+                "showarrow": False,
+                "font": {"size": 16}
+            }]
+        )
+        return empty_figure
+    
     if data is None or "history" not in data:
         return {}
     
@@ -274,19 +313,38 @@ def update_user_level_progress(data):
 
 @app.callback(
     Output("resources-over-time", "figure"),
-    Input("simulation-data-store", "data"),
+    [Input("simulation-data-store", "data"),
+     Input("auto-run-store", "data")],
     prevent_initial_call=True
 )
-def update_resources_over_time(data):
+def update_resources_over_time(data, auto_run_data):
     """
     Обновляет график ресурсов во времени.
     
     Args:
         data: Данные симуляции
+        auto_run_data: Данные о состоянии автозапуска
         
     Returns:
         go.Figure: График ресурсов
     """
+    # Проверяем, была ли запущена симуляция
+    if not auto_run_data or not auto_run_data.get("auto_run"):
+        empty_figure = go.Figure()
+        empty_figure.update_layout(
+            title="Запустите симуляцию для отображения данных",
+            xaxis={"visible": False},
+            yaxis={"visible": False},
+            annotations=[{
+                "text": "Нет данных. Нажмите кнопку 'Запустить симуляцию'",
+                "xref": "paper",
+                "yref": "paper",
+                "showarrow": False,
+                "font": {"size": 16}
+            }]
+        )
+        return empty_figure
+    
     if data is None or "history" not in data:
         return {}
     
@@ -414,19 +472,30 @@ def update_coins_per_level_table(user_levels_data):
 @app.callback(
     [Output("daily-events-table", "data"),
      Output("daily-events-table", "columns")],
-    Input("simulation-data-store", "data"),
+    [Input("simulation-data-store", "data"),
+     Input("auto-run-store", "data")],
     prevent_initial_call=True
 )
-def update_daily_events_table(data):
+def update_daily_events_table(data, auto_run_data):
     """
     Обновляет таблицу с ежедневными событиями игры.
     
     Args:
         data: Данные симуляции
+        auto_run_data: Данные о состоянии автозапуска
         
     Returns:
         tuple: (данные таблицы, колонки таблицы)
     """
+    # Проверяем, была ли запущена симуляция
+    if not auto_run_data or not auto_run_data.get("auto_run"):
+        empty_columns = [
+            {"name": "День", "id": "День"},
+            {"name": "Информация", "id": "Информация"}
+        ]
+        empty_data = [{"День": "", "Информация": "Запустите симуляцию для отображения данных"}]
+        return empty_data, empty_columns
+    
     if data is None or "history" not in data:
         return [], []
     
@@ -442,6 +511,8 @@ def update_daily_events_table(data):
     
     # Форматируем данные для таблицы
     table_data = []
+    # Данные для экспорта в CSV (сохраняем числовые значения)
+    export_data = []
     
     for event in daily_events:
         # Форматируем диапазон уровней
@@ -451,7 +522,7 @@ def update_daily_events_table(data):
         else:
             level_range_str = f"{level_range[0]} → {level_range[1]}"
         
-        # Добавляем строку в таблицу
+        # Добавляем строку в таблицу для отображения (с форматированием)
         table_data.append({
             "День": event["day"],
             "Входы в игру": event["sessions_count"],
@@ -462,6 +533,20 @@ def update_daily_events_table(data):
             "Новые локации": event["new_locations"],
             "Золото": f"{event['gold']:,.0f}",
             "XP": f"{event['xp']:,.0f}",
+            "Ключи": event["keys"]
+        })
+        
+        # Добавляем строку для экспорта (с числовыми значениями)
+        export_data.append({
+            "День": event["day"],
+            "Входы в игру": event["sessions_count"],
+            "Время в игре (мин)": round(event["session_minutes"], 1),
+            "Повышения уровня": event["level_ups"],
+            "Диапазон уровня": level_range_str,
+            "Улучшения локаций": event["upgrades_count"],
+            "Новые локации": event["new_locations"],
+            "Золото": event["gold"],
+            "XP": event["xp"],
             "Ключи": event["keys"]
         })
     
@@ -478,5 +563,8 @@ def update_daily_events_table(data):
         {"name": "XP", "id": "XP"},
         {"name": "Ключи", "id": "Ключи", "type": "numeric"}
     ]
+    
+    # Экспортируем таблицу в CSV (используем неформатированные данные)
+    export_daily_events_table(export_data)
     
     return table_data, columns 

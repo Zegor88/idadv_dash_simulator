@@ -37,6 +37,11 @@ COOLDOWN_MULTIPLIER_DEFAULT = 1.0
 DEFAULT_BASE_GOLD_PER_SEC = 0.56
 DEFAULT_EARN_COEFFICIENT = 1.090824358
 
+# Стартовый баланс по умолчанию
+DEFAULT_STARTING_GOLD = 1000.0
+DEFAULT_STARTING_XP = 1
+DEFAULT_STARTING_KEYS = 1
+
 # Настройки стилей
 STYLE_SECTION = {
     "marginBottom": "20px"
@@ -124,4 +129,18 @@ PLOT_COLORS = {
 }
 
 # Интервалы времени для записи состояния (в секундах)
-STATE_RECORD_INTERVAL = 86400  # 1 день 
+STATE_RECORD_INTERVAL = 86400  # 1 день
+
+# Настройки локаций
+LOCATION_COUNT = 20  # Количество локаций в игре
+
+# Настройки расписания проверок
+DEFAULT_CHECK_SCHEDULE = ["08:00", "12:00", "16:00", "20:00"]
+DEFAULT_GAME_DURATION = 15  # минут
+
+# Базовые экономические параметры
+BASE_GOLD = 0.56
+STARTING_GOLD = 1000.0
+STARTING_XP = 1
+STARTING_KEYS = 1
+EARN_COEFFICIENT = 1.090824358 

@@ -36,12 +36,12 @@ def create_sample_config() -> SimulationConfig:
             cost_growth_ratio=1.2
         ),
         LocationRarityType.RARE: LocationRarityConfig(
-            user_level_required=3,
+            user_level_required=5,
             keys_reward=2,
             cost_growth_ratio=1.225
         ),
         LocationRarityType.LEGENDARY: LocationRarityConfig(
-            user_level_required=6,
+            user_level_required=8,
             keys_reward=3,
             cost_growth_ratio=1.25
         ),

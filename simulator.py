@@ -5,7 +5,7 @@
 """
 
 import logging
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 
 from idadv_dash_simulator.models.config import SimulationConfig
 from idadv_dash_simulator.models.enums import LocationRarityType
@@ -46,19 +46,8 @@ class Simulator:
         Инициализирует локации, кулдауны, уровни пользователя и расписание проверок
         на основе конфигурации.
         """
-        
         # Добавляем все локации
-        self.workflow.locations.clear()
-        for index, loc_config in self.config.locations.items():
-            if not loc_config.levels:
-                continue
-                
-            self.workflow.locations[index] = Location(
-                rarity=loc_config.rarity,
-                min_character_level=self.config.location_rarity_config[loc_config.rarity].user_level_required,
-                levels=loc_config.levels,
-                keys=self.config.location_rarity_config[loc_config.rarity].keys_reward
-            )
+        self._setup_locations()
         
         # Добавляем информацию о кулдаунах
         self.workflow.cooldowns.clear()
@@ -77,8 +66,25 @@ class Simulator:
         
         # Устанавливаем алгоритм симуляции
         self.workflow.simulation_algorithm = self.config.simulation_algorithm
+    
+    def _setup_locations(self) -> None:
+        """
+        Инициализирует локации на основе конфигурации.
+        Вспомогательный метод для setup_workflow.
+        """
+        self.workflow.locations.clear()
+        for index, loc_config in self.config.locations.items():
+            if not loc_config.levels:
+                continue
+                
+            self.workflow.locations[index] = Location(
+                rarity=loc_config.rarity,
+                min_character_level=self.config.location_rarity_config[loc_config.rarity].user_level_required,
+                levels=loc_config.levels,
+                keys=self.config.location_rarity_config[loc_config.rarity].keys_reward
+            )
         
-    def run_simulation(self, simulation_id: str = None) -> SimulationResponse:
+    def run_simulation(self, simulation_id: Optional[str] = None) -> SimulationResponse:
         """
         Запускает симуляцию и возвращает результат.
         
@@ -90,6 +96,22 @@ class Simulator:
         """
         self.setup_workflow()
         return self.workflow.simulate(simulation_id)
+
+    @property
+    def result_summary(self) -> Dict[str, Union[int, float, str]]:
+        """
+        Возвращает краткую сводку результатов симуляции.
+        
+        Returns:
+            Dict: Словарь с основными метриками симуляции
+        """
+        return {
+            "user_level": self.workflow.balance.user_level,
+            "gold": self.workflow.balance.gold,
+            "xp": self.workflow.balance.xp,
+            "keys": self.workflow.balance.keys,
+            "earn_per_sec": self.workflow.balance.earn_per_sec
+        }
 
 
 def main():

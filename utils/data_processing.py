@@ -5,14 +5,17 @@
 from typing import Dict, List, Any, Tuple, Optional
 import pandas as pd
 
-from idadv_dash_simulator.config.simulation_config import create_sample_config
-
-# Получаем game_duration из конфигурации
-DEFAULT_GAME_DURATION = create_sample_config().economy.game_duration  # В секундах
+# Определяем константы напрямую вместо импорта из конфигурации
+DEFAULT_GAME_DURATION = 15 * 60  # 15 минут в секундах
 DEFAULT_SESSION_MINUTES = DEFAULT_GAME_DURATION / 60  # В минутах
 
-# Получаем расписание проверок из конфигурации
-DEFAULT_CHECK_SCHEDULE = create_sample_config().check_schedule  # Расписание логинов
+# Расписание проверок по умолчанию (без импорта из конфигурации)
+DEFAULT_CHECK_SCHEDULE = [
+    {"hour": 9, "minute": 0},
+    {"hour": 13, "minute": 0},
+    {"hour": 18, "minute": 0},
+    {"hour": 22, "minute": 0},
+]
 
 # Извлекает данные о локациях из истории симуляции
 def extract_location_data(history: List[Dict[str, Any]]) -> Dict[int, Dict[str, Any]]:

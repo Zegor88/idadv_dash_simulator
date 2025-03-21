@@ -1,18 +1,23 @@
 """
-Определение макета дашборда.
+Модуль макета дашборда Indonesian Adventure.
 """
 
-import dash
-from dash import dcc, html, dash_table
+from typing import List, Dict, Any
+from dash import dcc, html
+from dash.dash_table import DataTable
 
 from idadv_dash_simulator.config.dashboard_config import (
     CHECKS_PER_DAY_MIN, CHECKS_PER_DAY_MAX, CHECKS_PER_DAY_DEFAULT,
     COOLDOWN_MULTIPLIER_MIN, COOLDOWN_MULTIPLIER_MAX, COOLDOWN_MULTIPLIER_STEP, COOLDOWN_MULTIPLIER_DEFAULT,
     DEFAULT_BASE_GOLD_PER_SEC, DEFAULT_EARN_COEFFICIENT,
+    DEFAULT_STARTING_GOLD, DEFAULT_STARTING_XP, DEFAULT_STARTING_KEYS,
     STYLE_SECTION, STYLE_CONTAINER, STYLE_SIDEBAR, STYLE_MAIN_CONTENT, 
-    STYLE_HEADER, STYLE_BUTTON
+    STYLE_HEADER, STYLE_BUTTON,
+    BASE_GOLD, STARTING_GOLD, STARTING_XP, STARTING_KEYS, EARN_COEFFICIENT, LOCATION_COUNT,
+    DEFAULT_GAME_DURATION, DEFAULT_CHECK_SCHEDULE
 )
 from idadv_dash_simulator.models.config import SimulationAlgorithm
+from idadv_dash_simulator.simulator import Simulator
 
 def create_settings_panel():
     """
@@ -55,21 +60,75 @@ def create_settings_panel():
         
         html.Hr(style={"margin": "20px 0", "opacity": "0.3"}),
         
+        # Начальный баланс
+        html.Div([
+            html.H4("Стартовый баланс", className="settings-section-title"),
+            
+            html.Div([
+                html.Label("Начальное количество золота:", style={"display": "block", "marginBottom": "5px"}),
+                dcc.Input(
+                    id="starting-gold-input",
+                    type="number",
+                    value=DEFAULT_STARTING_GOLD,
+                    step=100,
+                    min=0,
+                    style={"width": "100%", "marginBottom": "15px", "padding": "8px"}
+                ),
+            ]),
+            
+            html.Div([
+                html.Label("Начальный опыт:", style={"display": "block", "marginBottom": "5px"}),
+                dcc.Input(
+                    id="starting-xp-input",
+                    type="number",
+                    value=DEFAULT_STARTING_XP,
+                    step=1,
+                    min=0,
+                    style={"width": "100%", "marginBottom": "15px", "padding": "8px"}
+                ),
+            ]),
+            
+            html.Div([
+                html.Label("Начальное количество ключей:", style={"display": "block", "marginBottom": "5px"}),
+                dcc.Input(
+                    id="starting-keys-input",
+                    type="number",
+                    value=DEFAULT_STARTING_KEYS,
+                    step=1,
+                    min=0,
+                    style={"width": "100%", "marginBottom": "15px", "padding": "8px"}
+                ),
+            ]),
+        ], className="settings-section"),
+        
+        html.Hr(style={"margin": "20px 0", "opacity": "0.3"}),
+        
         # Параметры проверок
         html.Div([
             html.H4("Параметры проверок", className="settings-section-title"),
             
             html.Div([
-                html.Label("Частота проверок в день:", style={"display": "block", "marginBottom": "10px"}),
-                dcc.Slider(
-                    id="checks-per-day-slider",
-                    min=CHECKS_PER_DAY_MIN,
-                    max=CHECKS_PER_DAY_MAX,
-                    step=1,
-                    value=CHECKS_PER_DAY_DEFAULT,
-                    marks={i: str(i) for i in range(CHECKS_PER_DAY_MIN, CHECKS_PER_DAY_MAX + 1)},
-                    tooltip={"placement": "bottom", "always_visible": True}
-                ),
+                html.Label("Расписание проверок:", style={"display": "block", "marginBottom": "10px", "fontWeight": "bold"}),
+                
+                # Контейнер для отображения времен проверок
+                html.Div(id="check-times-display", style={"marginBottom": "15px"}),
+                
+                # Хранилище для времен проверок
+                dcc.Store(id="check-times-store", data={"times": ["08:00", "12:00", "16:00", "20:00"]}),
+                
+                # Длительность игровой сессии
+                html.Div([
+                    html.Label("Длительность сессии в минутах:", style={"display": "block", "marginBottom": "5px", "fontWeight": "bold"}),
+                    dcc.Input(
+                        id="game-duration-input",
+                        type="number",
+                        value=15,  # Значение по умолчанию: 15 минут
+                        min=1,
+                        max=60,
+                        step=1,
+                        style={"width": "100%", "padding": "8px", "borderRadius": "4px", "border": "1px solid #ddd"}
+                    ),
+                ], style={"marginTop": "20px"}),
             ], style={"marginBottom": "20px"}),
         ], className="settings-section"),
         
@@ -174,16 +233,87 @@ def create_locations_tab():
         html.Div: Контейнер с содержимым вкладки
     """
     return html.Div([
-        # График анализа локаций
+        # Таблица стоимостей локаций
         html.Div([
             html.H4("Анализ локаций", className="tab-section-title"),
+            html.Div([
+                DataTable(
+                    id="locations-cost-table",
+                    style_header={
+                        'backgroundColor': '#f8f9fa',
+                        'fontWeight': 'bold',
+                        'border': '1px solid #ddd'
+                    },
+                    style_cell={
+                        'padding': '8px 15px',
+                        'textAlign': 'center',
+                        'backgroundColor': 'white',
+                        'border': '1px solid #ddd',
+                        'minWidth': '70px',
+                        'maxWidth': '100px',
+                        'whiteSpace': 'normal'
+                    },
+                    style_table={
+                        'overflowX': 'auto',
+                        'maxHeight': '400px',
+                        'overflowY': 'auto'
+                    },
+                    fixed_rows={'headers': True},
+                    tooltip_delay=0,
+                    tooltip_duration=None
+                ),
+                # Легенда для цветов редкости
+                html.Div([
+                    html.Div([
+                        html.Span("Редкость локаций:", style={"marginRight": "10px", "fontWeight": "bold"}),
+                        html.Span([
+                            html.Span("", style={
+                                "display": "inline-block", 
+                                "width": "12px", 
+                                "height": "12px", 
+                                "backgroundColor": "#f0f8ff", 
+                                "marginRight": "5px",
+                                "border": "1px solid #ddd"
+                            }),
+                            "Обычные",
+                        ], style={"marginRight": "10px"}),
+                        html.Span([
+                            html.Span("", style={
+                                "display": "inline-block", 
+                                "width": "12px", 
+                                "height": "12px", 
+                                "backgroundColor": "#f5f0ff", 
+                                "marginRight": "5px",
+                                "border": "1px solid #ddd"
+                            }),
+                            "Редкие",
+                        ], style={"marginRight": "10px"}),
+                        html.Span([
+                            html.Span("", style={
+                                "display": "inline-block", 
+                                "width": "12px", 
+                                "height": "12px", 
+                                "backgroundColor": "#fffbeb", 
+                                "marginRight": "5px",
+                                "border": "1px solid #ddd"
+                            }),
+                            "Легендарные",
+                        ]),
+                    ], style={"display": "flex", "alignItems": "center", "fontSize": "12px", "color": "#666"})
+                ], style={"marginTop": "10px", "textAlign": "right"})
+            ], style={"marginBottom": "30px"}),
+        ], className="tab-section"),
+        
+        # График анализа локаций
+        html.Div([
+            html.H4("Прогресс локаций", className="tab-section-title"),
             dcc.Graph(id="locations-upgrades"),
         ], className="tab-section"),
         
         # Таблица истории улучшений локаций
         html.Div([
             html.H4("История улучшений локаций", className="tab-section-title"),
-            dash_table.DataTable(
+            DataTable(
                 id="location-history-table",
                 style_header={
                     'backgroundColor': '#f8f9fa',
@@ -218,7 +348,7 @@ def create_economy_tab():
         html.Div([
             html.H4("Базовая экономика", className="tab-section-title"),
             dcc.Graph(id="gold-per-sec-progression"),
-            dash_table.DataTable(
+            DataTable(
                 id="gold-per-sec-table",
                 columns=[
                     {"name": "Уровень", "id": "level"},
@@ -255,7 +385,7 @@ def create_economy_tab():
         # 3. Баланс золота
         html.Div([
             html.H4("Баланс золота", className="tab-section-title"),
-            dash_table.DataTable(
+            DataTable(
                 id="upgrades-history-table",
                 style_header={
                     'backgroundColor': '#f8f9fa',
@@ -297,7 +427,7 @@ def create_pace_tab():
         
         html.Div([
             html.H4("События по дням", className="tab-section-title"),
-            dash_table.DataTable(
+            DataTable(
                 id="daily-events-table",
                 style_table={'overflowX': 'auto'},
                 style_cell={
@@ -374,4 +504,6 @@ def create_layout(title):
         # Хранилища данных
         dcc.Store(id="simulation-data-store"),
         dcc.Store(id="user-levels-store"),
+        # Добавляем флаг, указывающий, что симуляция еще не запущена
+        dcc.Store(id="auto-run-store", data={"auto_run": False})
     ]) 

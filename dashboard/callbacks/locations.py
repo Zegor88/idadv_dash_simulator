@@ -9,23 +9,43 @@ from dash import Input, Output, State, callback, html
 
 from idadv_dash_simulator.utils.plotting import create_subplot_figure, add_time_series, create_bar_chart
 from idadv_dash_simulator.utils.data_processing import extract_location_data, extract_upgrades_timeline
+from idadv_dash_simulator.utils.export import export_location_upgrades_table
 from idadv_dash_simulator.dashboard import app
 
 @app.callback(
     Output("locations-upgrades", "figure"),
-    Input("simulation-data-store", "data"),
+    [Input("simulation-data-store", "data"),
+     Input("auto-run-store", "data")],
     prevent_initial_call=True
 )
-def update_locations_analysis(data):
+def update_locations_analysis(data, auto_run_data):
     """
     Обновляет анализ локаций.
     
     Args:
         data: Данные симуляции
+        auto_run_data: Данные о состоянии автозапуска
         
     Returns:
         go.Figure: График с анализом локаций
     """
+    # Проверяем, была ли запущена симуляция
+    if not auto_run_data or not auto_run_data.get("auto_run"):
+        empty_figure = go.Figure()
+        empty_figure.update_layout(
+            title="Запустите симуляцию для отображения данных",
+            xaxis={"visible": False},
+            yaxis={"visible": False},
+            annotations=[{
+                "text": "Нет данных. Нажмите кнопку 'Запустить симуляцию'",
+                "xref": "paper",
+                "yref": "paper",
+                "showarrow": False,
+                "font": {"size": 16}
+            }]
+        )
+        return empty_figure
+    
     if data is None or "history" not in data:
         return {}
     
@@ -210,21 +230,32 @@ def update_locations_analysis(data):
 
 
 @app.callback(
-    Output("progress-details-table", "data"),
-    Output("progress-details-table", "columns"),
-    Input("simulation-data-store", "data"),
+    [Output("progress-details-table", "data"),
+     Output("progress-details-table", "columns")],
+    [Input("simulation-data-store", "data"),
+     Input("auto-run-store", "data")],
     prevent_initial_call=True
 )
-def update_progress_details(data):
+def update_progress_details(data, auto_run_data):
     """
     Обновляет таблицу с детальной информацией о прогрессе.
     
     Args:
         data: Данные симуляции
+        auto_run_data: Данные о состоянии автозапуска
         
     Returns:
         list: [данные таблицы, столбцы]
     """
+    # Проверяем, была ли запущена симуляция
+    if not auto_run_data or not auto_run_data.get("auto_run"):
+        empty_columns = [
+            {"name": "День", "id": "День"},
+            {"name": "Информация", "id": "Информация"}
+        ]
+        empty_data = [{"День": "", "Информация": "Запустите симуляцию для отображения данных"}]
+        return empty_data, empty_columns
+    
     if data is None or "history" not in data:
         return [], []
     
@@ -270,19 +301,30 @@ def update_progress_details(data):
 @app.callback(
     [Output("location-history-table", "data"),
      Output("location-history-table", "columns")],
-    [Input("simulation-data-store", "data")],
+    [Input("simulation-data-store", "data"),
+     Input("auto-run-store", "data")],
     prevent_initial_call=True
 )
-def update_location_history(data):
+def update_location_history(data, auto_run_data):
     """
     Обновляет таблицу истории улучшений локаций.
     
     Args:
         data: Данные симуляции
+        auto_run_data: Данные о состоянии автозапуска
         
     Returns:
         tuple: (данные таблицы, колонки таблицы)
     """
+    # Проверяем, была ли запущена симуляция
+    if not auto_run_data or not auto_run_data.get("auto_run"):
+        empty_columns = [
+            {"name": "День", "id": "День"},
+            {"name": "Информация", "id": "Информация"}
+        ]
+        empty_data = [{"День": "", "Информация": "Запустите симуляцию для отображения данных"}]
+        return empty_data, empty_columns
+    
     if data is None or "history" not in data:
         return [], []
     
@@ -298,6 +340,7 @@ def update_location_history(data):
     
     # Форматируем данные для таблицы
     table_data = []
+    export_data = []
     
     for upgrade in upgrades_timeline:
         # Вычисляем день и время
@@ -308,6 +351,7 @@ def update_location_history(data):
         minutes = (time_seconds % 3600) // 60
         seconds = (time_seconds % 3600) % 60
         
+        # Данные для отображения (отформатированные)
         table_data.append({
             "День": day + 1,  # День начинается с 1
             "Время": f"{hours:02d}:{minutes:02d}:{seconds:02d}",
@@ -323,9 +367,27 @@ def update_location_history(data):
             "Награда Ключи": f"{upgrade['keys_change']:,.0f}",
             "Баланс Ключи": f"{upgrade['keys_after']:,.0f}"
         })
+        
+        # Данные для экспорта CSV (численные значения)
+        export_data.append({
+            "День": day + 1,  # День начинается с 1
+            "Время": f"{hours:02d}:{minutes:02d}:{seconds:02d}",
+            "Локация": f"Локация {upgrade['location_id']}",
+            "Новый уровень": upgrade["new_level"],
+            "Золото ДО": upgrade['gold_before'],
+            "Стоимость": -upgrade['gold_change'],  # Стоимость - это отрицательное изменение золота
+            "Баланс золота": upgrade['gold_after'],
+            "XP ДО": upgrade['xp_before'],
+            "Награда XP": upgrade['xp_change'],
+            "Баланс XP": upgrade['xp_after'],
+            "Ключи ДО": upgrade['keys_before'],
+            "Награда Ключи": upgrade['keys_change'],
+            "Баланс Ключи": upgrade['keys_after']
+        })
     
     # Сортируем по дню и времени
     table_data = sorted(table_data, key=lambda x: (x["День"], x["Время"]))
+    export_data = sorted(export_data, key=lambda x: (x["День"], x["Время"]))
     
     # Определяем колонки
     columns = [
@@ -344,4 +406,132 @@ def update_location_history(data):
         {"name": "Баланс Ключи", "id": "Баланс Ключи"}
     ]
     
-    return table_data, columns 
+    # Экспортируем таблицу в CSV (используем данные с числовыми значениями)
+    export_location_upgrades_table(export_data)
+    
+    return table_data, columns
+
+@app.callback(
+    [Output("locations-parameters-table", "data"),
+     Output("locations-parameters-table", "columns")],
+    [Input("simulation-data-store", "data"),
+     Input("auto-run-store", "data")],
+    prevent_initial_call=True
+)
+def update_locations_parameters(data, auto_run_data):
+    """
+    Обновляет таблицу параметров локаций.
+    
+    Args:
+        data: Данные симуляции
+        auto_run_data: Данные о состоянии автозапуска
+        
+    Returns:
+        list: [данные таблицы, столбцы]
+    """
+    # Проверяем, была ли запущена симуляция
+    if not auto_run_data or not auto_run_data.get("auto_run"):
+        empty_columns = [
+            {"name": "Локация", "id": "Локация"},
+            {"name": "Информация", "id": "Информация"}
+        ]
+        empty_data = [{"Локация": "", "Информация": "Запустите симуляцию для отображения данных"}]
+        return empty_data, empty_columns
+    
+    if data is None or "locations" not in data:
+        return [], []
+    
+    locations = data["locations"]
+    if not locations:
+        return [], []
+    
+    # Остальной код без изменений... 
+
+@app.callback(
+    [Output("locations-cost-table", "data"),
+     Output("locations-cost-table", "columns"),
+     Output("locations-cost-table", "style_data_conditional")],
+    [Input("simulation-data-store", "data"),
+     Input("auto-run-store", "data")],
+    prevent_initial_call=True
+)
+def update_locations_cost_table(data, auto_run_data):
+    """
+    Обновляет таблицу стоимостей локаций.
+    
+    Args:
+        data: Данные симуляции
+        auto_run_data: Данные о состоянии автозапуска
+        
+    Returns:
+        list: [данные таблицы, столбцы, условные стили]
+    """
+    # Проверяем, была ли запущена симуляция
+    if not auto_run_data or not auto_run_data.get("auto_run") or data is None:
+        empty_data = []
+        empty_columns = [{"name": "", "id": "empty"}]
+        empty_styles = []
+        return empty_data, empty_columns, empty_styles
+    
+    # Извлекаем конфигурацию из данных
+    if "config" not in data:
+        return [], [], []
+    
+    config = data["config"]
+    if "locations" not in config:
+        return [], [], []
+    
+    locations = config["locations"]
+    
+    # Создаем данные для таблицы
+    # Находим максимальное количество уровней
+    max_level = 0
+    for loc_data in locations.values():
+        if "levels" in loc_data:
+            max_level = max(max_level, max(int(level) for level in loc_data["levels"].keys()))
+    
+    # Создаем столбцы
+    columns = [{"name": "Локация", "id": "location_id"}]
+    for level in range(1, max_level + 1):
+        columns.append({"name": f"Уровень {level}", "id": f"level_{level}"})
+    
+    # Создаем строки данных и отслеживаем редкость локаций
+    table_data = []
+    location_rarity = {}  # Словарь для хранения редкости каждой локации
+    
+    for loc_id, loc_data in sorted(locations.items(), key=lambda x: int(x[0])):
+        row = {"location_id": f"Локация {loc_id}"}
+        
+        # Запоминаем редкость локации
+        if "rarity" in loc_data:
+            location_rarity[loc_id] = loc_data["rarity"]
+        
+        if "levels" in loc_data:
+            for level, level_data in loc_data["levels"].items():
+                cost = level_data.get("cost", "")
+                row[f"level_{level}"] = f"{cost:,}".replace(",", " ") if cost else ""
+        
+        table_data.append(row)
+    
+    # Создаем условные стили для разных типов редкости
+    style_data_conditional = []
+    
+    # Цвета для разных типов редкости (мягкие, не броские оттенки)
+    rarity_colors = {
+        "common": "#f0f8ff",  # Светло-голубой (почти белый) для обычных локаций
+        "rare": "#f5f0ff",    # Светло-фиолетовый (очень бледный) для редких
+        "legendary": "#fffbeb" # Светло-золотой (кремовый) для легендарных
+    }
+    
+    # Добавляем условные стили для каждого типа локаций
+    for loc_id, rarity in location_rarity.items():
+        # Получаем соответствующий цвет для данной редкости
+        color = rarity_colors.get(rarity.lower(), "#ffffff")
+        
+        # Добавляем условный стиль для всех ячеек в строке этой локации
+        style_data_conditional.append({
+            "if": {"filter_query": f"{{location_id}} = \"Локация {loc_id}\""},
+            "backgroundColor": color
+        })
+    
+    return table_data, columns, style_data_conditional 

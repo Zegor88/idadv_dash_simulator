@@ -42,146 +42,6 @@ def create_status_message(status_type: str, message: str, details: Optional[str]
     return html.Div(components)
 
 @app.callback(
-    Output("check-times-display", "children"),
-    Input("check-times-store", "data")
-)
-def update_check_times_display(data):
-    """
-    Обновляет отображение времен проверок.
-    
-    Args:
-        data: Данные о временах проверок
-        
-    Returns:
-        list: Список компонентов для отображения времен проверок
-    """
-    print("update_check_times_display вызвана с данными:", data)
-    
-    if not data or "times" not in data:
-        times = ["08:00", "12:00", "16:00", "20:00"]
-    else:
-        times = data["times"]
-    
-    time_items = []
-    for i, time in enumerate(times):
-        time_item = html.Div(
-            [
-                html.Span(time, style={"marginRight": "10px", "fontWeight": "normal", "fontSize": "14px"}),
-                html.Button(
-                    "-", 
-                    id={"type": "remove-specific-time-button", "index": i},
-                    style={
-                        "border": "none",
-                        "backgroundColor": "#f44336",
-                        "color": "white",
-                        "borderRadius": "4px",
-                        "cursor": "pointer",
-                        "width": "25px",
-                        "height": "25px",
-                        "fontSize": "14px",
-                        "padding": "0"
-                    }
-                )
-            ],
-            style={
-                "display": "flex",
-                "alignItems": "center",
-                "marginBottom": "5px",
-                "padding": "5px"
-            }
-        )
-        time_items.append(time_item)
-    
-    print("Создано элементов:", len(time_items))
-    
-    return [
-        html.Div(time_items, style={"marginBottom": "10px"}),
-        html.Div(
-            [
-                html.Button(
-                    "+", 
-                    id="add-check-time-button",
-                    style={
-                        "border": "none",
-                        "backgroundColor": "#4CAF50",
-                        "color": "white",
-                        "borderRadius": "4px",
-                        "cursor": "pointer",
-                        "width": "25px",
-                        "height": "25px",
-                        "fontSize": "14px",
-                        "padding": "0"
-                    }
-                )
-            ]
-        )
-    ]
-
-@app.callback(
-    Output("check-times-store", "data"),
-    [Input({"type": "remove-specific-time-button", "index": dash.ALL}, "n_clicks"),
-     Input("add-check-time-button", "n_clicks")],
-    [State("check-times-store", "data")],
-    prevent_initial_call=True
-)
-def update_check_times(remove_specific_clicks, add_clicks, current_data):
-    """
-    Обновляет список времен проверок при нажатии на кнопки добавления или удаления.
-    
-    Args:
-        remove_specific_clicks: Количество нажатий на кнопки удаления конкретных времен
-        add_clicks: Количество нажатий на кнопку добавления
-        current_data: Текущие данные о временах проверок
-        
-    Returns:
-        dict: Обновленные данные о временах проверок
-    """
-    # Определяем, какая кнопка была нажата
-    ctx = dash.callback_context
-    if not ctx.triggered:
-        return current_data
-    
-    trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
-    
-    if not current_data or "times" not in current_data:
-        current_data = {"times": ["08:00", "12:00", "16:00", "20:00"]}
-    
-    times = current_data["times"]
-    
-    # Обработка нажатия на кнопку добавления
-    if trigger_id == "add-check-time-button":
-        # Добавляем новое время проверки
-        if times:
-            last_time = times[-1]
-            h, m = map(int, last_time.split(":"))
-            new_h = (h + 4) % 24
-            new_time = f"{new_h:02d}:00"
-        else:
-            new_time = "12:00"
-        
-        times.append(new_time)
-    
-    # Обработка нажатия на кнопку удаления конкретного времени
-    elif "remove-specific-time-button" in trigger_id:
-        try:
-            # Извлекаем индекс кнопки из ID
-            button_id = json.loads(trigger_id)
-            index = button_id.get("index")
-            
-            # Удаляем время с указанным индексом
-            if index is not None and 0 <= index < len(times):
-                times.pop(index)
-        except (json.JSONDecodeError, ValueError, KeyError):
-            # Игнорируем ошибки при парсинге ID
-            pass
-    
-    # Убеждаемся, что список времен не пустой
-    if not times:
-        times = ["12:00"]
-    
-    return {"times": times}
-
-@app.callback(
     [Output("simulation-status", "children"),
      Output("simulation-data-store", "data"),
      Output("user-levels-store", "data"),
@@ -283,7 +143,7 @@ def run_simulation(n_clicks, base_gold, earn_coefficient, cooldown_multiplier,
     config_data = {
         "locations": {
             str(loc_id): {
-                "rarity": str(loc_config.rarity.value),
+                "rarity": loc_config.rarity.name,
                 "levels": {
                     str(level): {
                         "cost": level_config.cost,
@@ -429,4 +289,267 @@ def _update_check_schedule_from_times(config: SimulationConfig, check_times_data
     check_schedule.sort()
     
     # Обновляем расписание в конфигурации
-    config.check_schedule = check_schedule 
+    config.check_schedule = check_schedule
+
+@app.callback(
+    [Output("completion-time", "children"),
+     Output("final-resources", "children")],
+    [Input("simulation-data-store", "data"),
+     Input("auto-run-store", "data")],
+    prevent_initial_call=True
+)
+def update_completion_info(data, auto_run_data):
+    """
+    Обновляет информацию о завершении симуляции.
+    
+    Args:
+        data: Данные симуляции
+        auto_run_data: Данные о состоянии автозапуска
+        
+    Returns:
+        list: [информация о времени, информация о ресурсах]
+    """
+    # Проверяем, была ли запущена симуляция
+    if not data or not auto_run_data or not auto_run_data.get("auto_run"):
+        await_run_message = html.Div([
+            html.H5("Данные недоступны", style={"color": "#6c757d"}),
+            html.P("Запустите симуляцию для отображения информации", style={"fontStyle": "italic"})
+        ])
+        return await_run_message, await_run_message
+    
+    if "history" not in data or not data["history"]:
+        return "Нет данных", "Нет данных"
+    
+    history = data["history"]
+    last_state = history[-1]
+    balance = last_state["balance"]
+    
+    timestamp = data.get("timestamp", last_state["timestamp"])
+    days = timestamp // 86400
+    hours = (timestamp % 86400) // 3600
+    
+    completion_info = html.Div([
+        html.H5("Общая информация:"),
+        html.P(f"Время прохождения: {days} дней, {hours} часов ({timestamp} секунд)"),
+        html.P(f"Причина остановки: {data.get('stop_reason', 'Не указана')}")
+    ])
+    
+    resources_info = html.Div([
+        html.H5("Финальные ресурсы:"),
+        html.P(f"Золото: {balance['gold']:.2f}"),
+        html.P(f"Опыт: {balance['xp']}"),
+        html.P(f"Ключи: {balance['keys']}"),
+        html.P(f"Уровень: {balance['user_level']}"),
+        html.P(f"Заработок в секунду: {balance['earn_per_sec']:.2f}")
+    ])
+    
+    return completion_info, resources_info
+
+
+@app.callback(
+    Output("key-metrics", "children"),
+    [Input("simulation-data-store", "data"),
+     Input("auto-run-store", "data")],
+    prevent_initial_call=True
+)
+def update_key_metrics(data, auto_run_data):
+    """
+    Обновляет ключевые метрики симуляции.
+    
+    Args:
+        data: Данные симуляции
+        auto_run_data: Данные о состоянии автозапуска
+        
+    Returns:
+        html.Div: Блок с метриками
+    """
+    # Проверяем, была ли запущена симуляция
+    if not data or not auto_run_data or not auto_run_data.get("auto_run"):
+        return html.Div([
+            html.P("Запустите симуляцию для отображения метрик", 
+                   style={"textAlign": "center", "color": "#6c757d", "fontStyle": "italic", "padding": "20px"})
+        ])
+    
+    if "history" not in data or not data["history"]:
+        return "Нет данных"
+    
+    history = data["history"]
+    
+    # Собираем данные о улучшениях локаций
+    location_upgrades = 0
+    total_spent = 0
+    
+    for state in history:
+        actions = state.get("actions", [])
+        for action in actions:
+            if action.get("type") == "location_upgrade":
+                location_upgrades += 1
+                total_spent += -action.get("gold_change", 0)  # Стоимость - это отрицательное изменение золота
+    
+    # Собираем данные о стагнации
+    days_with_upgrades = set()
+    for state in history:
+        actions = state.get("actions", [])
+        for action in actions:
+            if action.get("type") == "location_upgrade" and "timestamp" in action:
+                days_with_upgrades.add(action["timestamp"] // 86400)
+    
+    total_days = data.get("timestamp", history[-1]["timestamp"]) // 86400
+    if total_days < 1:
+        total_days = 1  # Чтобы избежать деления на ноль
+        
+    days_without_upgrades = total_days - len(days_with_upgrades)
+    days_without_upgrades_percent = (days_without_upgrades / total_days * 100) if total_days > 0 else 0
+    
+    # Стиль для блоков метрик
+    style_box = {
+        "textAlign": "center", 
+        "backgroundColor": "#f8f9fa", 
+        "padding": "15px", 
+        "borderRadius": "8px",
+        "boxShadow": "0 2px 4px rgba(0,0,0,0.1)",
+        "width": "30%",
+        "margin": "10px"
+    }
+    
+    return html.Div([
+        html.Div([
+            html.H3(f"{location_upgrades}"),
+            html.P("Улучшений локаций")
+        ], style=style_box),
+        
+        html.Div([
+            html.H3(f"{total_spent:,.0f}"),
+            html.P("Потрачено золота")
+        ], style=style_box),
+        
+        html.Div([
+            html.H3(f"{days_without_upgrades_percent:.1f}%"),
+            html.P(f"Дней без улучшений ({days_without_upgrades} из {total_days})")
+        ], style=style_box)
+    ], style={"display": "flex", "flexDirection": "row", "justifyContent": "space-around", "flexWrap": "wrap"})
+
+@app.callback(
+    Output("check-times-display", "children"),
+    Input("check-times-store", "data")
+)
+def update_check_times_display(data):
+    """
+    Обновляет отображение времен проверок.
+    
+    Args:
+        data: Данные о временах проверок
+        
+    Returns:
+        list: Список компонентов для отображения времен проверок
+    """
+    if not data or "times" not in data:
+        times = ["08:00", "12:00", "16:00", "20:00"]
+    else:
+        times = data["times"]
+    
+    # Создаем простой вариант отображения без кнопок для удаления
+    time_items = []
+    for i, time in enumerate(times):
+        time_items.append(html.Div(
+            [
+                html.Span(f"{time}"),
+                html.Button(
+                    "-", 
+                    id={"type": "remove-specific-time-button", "index": i},
+                    style={
+                        "marginLeft": "5px",
+                        "backgroundColor": "#f44336",
+                        "color": "white",
+                        "border": "none",
+                        "borderRadius": "4px",
+                        "width": "25px",
+                        "height": "25px"
+                    }
+                )
+            ],
+            style={"marginBottom": "5px", "display": "flex", "alignItems": "center"}
+        ))
+    
+    # Кнопка добавления времени
+    add_button = html.Button(
+        "+", 
+        id="add-check-time-button",
+        style={
+            "backgroundColor": "#4CAF50",
+            "color": "white",
+            "border": "none",
+            "borderRadius": "4px",
+            "width": "25px",
+            "height": "25px"
+        }
+    )
+    
+    return [
+        html.Div(time_items),
+        html.Div(add_button, style={"marginTop": "5px"})
+    ]
+
+@app.callback(
+    Output("check-times-store", "data"),
+    [Input({"type": "remove-specific-time-button", "index": dash.ALL}, "n_clicks"),
+     Input("add-check-time-button", "n_clicks")],
+    [State("check-times-store", "data")],
+    prevent_initial_call=True
+)
+def update_check_times(remove_specific_clicks, add_clicks, current_data):
+    """
+    Обновляет список времен проверок при нажатии на кнопки добавления или удаления.
+    
+    Args:
+        remove_specific_clicks: Количество нажатий на кнопки удаления конкретных времен
+        add_clicks: Количество нажатий на кнопку добавления
+        current_data: Текущие данные о временах проверок
+        
+    Returns:
+        dict: Обновленные данные о временах проверок
+    """
+    # Определяем, какая кнопка была нажата
+    ctx = dash.callback_context
+    if not ctx.triggered:
+        return current_data
+    
+    trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
+    
+    if not current_data or "times" not in current_data:
+        current_data = {"times": ["08:00", "12:00", "16:00", "20:00"]}
+    
+    times = current_data["times"]
+    
+    # Обработка нажатия на кнопку добавления
+    if trigger_id == "add-check-time-button":
+        # Добавляем новое время проверки
+        if times:
+            last_time = times[-1]
+            h, m = map(int, last_time.split(":"))
+            new_h = (h + 4) % 24
+            new_time = f"{new_h:02d}:00"
+        else:
+            new_time = "12:00"
+        
+        times.append(new_time)
+    
+    # Обработка нажатия на кнопку удаления конкретного времени
+    elif "remove-specific-time-button" in trigger_id:
+        try:
+            # Извлекаем индекс кнопки из ID
+            button_id = json.loads(trigger_id)
+            index = button_id.get("index")
+            
+            # Удаляем время с указанным индексом
+            if index is not None and 0 <= index < len(times):
+                times.pop(index)
+        except (json.JSONDecodeError, ValueError, KeyError):
+            # Игнорируем ошибки при парсинге ID
+            pass
+    
+    # Убеждаемся, что список времен не пустой
+    if not times:
+        times = ["12:00"]
+    
+    return {"times": times} 

@@ -10,6 +10,7 @@ from dash import Input, Output, State, callback, html
 from idadv_dash_simulator.utils.economy import calculate_gold_per_sec
 from idadv_dash_simulator.utils.plotting import create_subplot_figure, add_time_series, create_bar_chart
 from idadv_dash_simulator.utils.data_processing import extract_upgrades_timeline, extract_resource_data
+from idadv_dash_simulator.utils.export import export_gold_balance_table
 from idadv_dash_simulator.config.dashboard_config import PLOT_COLORS, STYLE_METRICS_BOX, STYLE_FLEX_ROW
 from idadv_dash_simulator.dashboard import app
 
@@ -104,21 +105,53 @@ def update_gold_progression(base_gold, earn_coefficient):
 
 @app.callback(
     Output("economy-analysis", "figure"),
-    Input("simulation-data-store", "data"),
+    [Input("simulation-data-store", "data"),
+     Input("auto-run-store", "data")],
     prevent_initial_call=True
 )
-def update_economy_analysis(data):
+def update_economy_analysis(data, auto_run_data):
     """
     Обновляет анализ экономики.
     
     Args:
         data: Данные симуляции
+        auto_run_data: Данные о состоянии автозапуска
         
     Returns:
         go.Figure: График с анализом экономики
     """
+    # Проверяем, была ли запущена симуляция
+    if not auto_run_data or not auto_run_data.get("auto_run"):
+        empty_figure = go.Figure()
+        empty_figure.update_layout(
+            title="Запустите симуляцию для отображения данных",
+            xaxis={"visible": False},
+            yaxis={"visible": False},
+            annotations=[{
+                "text": "Нет данных. Нажмите кнопку 'Запустить симуляцию'",
+                "xref": "paper",
+                "yref": "paper",
+                "showarrow": False,
+                "font": {"size": 16}
+            }]
+        )
+        return empty_figure
+
     if data is None or "history" not in data:
-        return {}
+        empty_figure = go.Figure()
+        empty_figure.update_layout(
+            title="Нет данных для отображения",
+            xaxis={"visible": False},
+            yaxis={"visible": False},
+            annotations=[{
+                "text": "История симуляции пуста",
+                "xref": "paper",
+                "yref": "paper",
+                "showarrow": False,
+                "font": {"size": 16}
+            }]
+        )
+        return empty_figure
     
     history = data["history"]
     if not history:
@@ -308,25 +341,32 @@ def update_economy_analysis(data):
 
 @app.callback(
     Output("economy-metrics", "children"),
-    Input("simulation-data-store", "data"),
+    [Input("simulation-data-store", "data"),
+     Input("auto-run-store", "data")],
     prevent_initial_call=True
 )
-def update_economy_metrics(data):
+def update_economy_metrics(data, auto_run_data):
     """
     Обновляет метрики экономики.
     
     Args:
         data: Данные симуляции
+        auto_run_data: Данные о состоянии автозапуска
         
     Returns:
         html.Div: Блок с метриками
     """
+    # Проверяем, была ли запущена симуляция
+    if not auto_run_data or not auto_run_data.get("auto_run"):
+        return html.Div("Запустите симуляцию для отображения данных", 
+                        style={"textAlign": "center", "padding": "20px"})
+
     if data is None or "history" not in data:
-        return "Нет данных"
+        return html.Div("Нет данных", style={"textAlign": "center", "padding": "20px"})
     
     history = data["history"]
     if not history:
-        return "Нет данных"
+        return html.Div("История симуляции пуста", style={"textAlign": "center", "padding": "20px"})
     
     # Собираем данные об экономике
     total_income = 0
@@ -364,19 +404,30 @@ def update_economy_metrics(data):
 @app.callback(
     Output("upgrades-history-table", "data"),
     Output("upgrades-history-table", "columns"),
-    Input("simulation-data-store", "data"),
+    [Input("simulation-data-store", "data"),
+     Input("auto-run-store", "data")],
     prevent_initial_call=True
 )
-def update_upgrades_history(data):
+def update_upgrades_history(data, auto_run_data):
     """
     Обновляет таблицу баланса золота.
     
     Args:
         data: Данные симуляции
+        auto_run_data: Данные о состоянии автозапуска
         
     Returns:
         list: [данные таблицы, столбцы]
     """
+    # Проверяем, была ли запущена симуляция
+    if not auto_run_data or not auto_run_data.get("auto_run"):
+        empty_columns = [
+            {"name": "День", "id": "День"},
+            {"name": "Информация", "id": "Информация"}
+        ]
+        empty_data = [{"День": "", "Информация": "Запустите симуляцию для отображения данных"}]
+        return empty_data, empty_columns
+    
     if data is None or "history" not in data:
         return [], []
     
@@ -386,6 +437,7 @@ def update_upgrades_history(data):
     
     # Собираем все действия из истории
     actions_data = []
+    export_data = []
     
     for state in history:
         for action in state["actions"]:
@@ -406,6 +458,7 @@ def update_upgrades_history(data):
             else:
                 continue
             
+            # Данные для отображения
             actions_data.append({
                 "День": day + 1,  # День начинается с 1
                 "Время": f"{hours:02d}:{minutes:02d}",
@@ -414,9 +467,20 @@ def update_upgrades_history(data):
                 "Изменение": f"{action['gold_change']:,.0f}",
                 "Баланс": f"{action['gold_after']:,.0f}"
             })
+            
+            # Данные для экспорта CSV
+            export_data.append({
+                "День": day + 1,  # День начинается с 1
+                "Время": f"{hours:02d}:{minutes:02d}",
+                "Событие": event,
+                "Золото ДО": action['gold_before'],
+                "Изменение": action['gold_change'],
+                "Баланс": action['gold_after']
+            })
     
     # Сортируем по дню и времени
     actions_data = sorted(actions_data, key=lambda x: (x["День"], x["Время"]))
+    export_data = sorted(export_data, key=lambda x: (x["День"], x["Время"]))
     
     # Определяем столбцы
     columns = [
@@ -427,6 +491,9 @@ def update_upgrades_history(data):
         {"name": "Изменение", "id": "Изменение"},
         {"name": "Баланс", "id": "Баланс"}
     ]
+    
+    # Экспортируем таблицу в CSV (используем необработанные числовые данные)
+    export_gold_balance_table(export_data)
     
     return actions_data, columns
 

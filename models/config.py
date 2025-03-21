@@ -21,10 +21,18 @@ class LocationConfig:
     levels: Dict[int, LocationLevel] = field(default_factory=dict)
 
 @dataclass
+class StartingBalanceConfig:
+    """Конфигурация начального баланса игрока."""
+    gold: float = 1000.0  # Начальное золото
+    xp: int = 1      # Начальный опыт
+    keys: int = 1    # Начальное количество ключей
+
+@dataclass
 class EconomyConfig:
     """Конфигурация экономики игры."""
     base_gold_per_sec: float
     earn_coefficient: float
+    starting_balance: StartingBalanceConfig = field(default_factory=StartingBalanceConfig)
     game_duration: int = 1800  # 30 минут в секундах по умолчанию
 
 class SimulationAlgorithm(Enum):

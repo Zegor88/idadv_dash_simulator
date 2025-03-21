@@ -34,6 +34,12 @@ class Workflow:
         
         logger.info("Starting simulation...")
         
+        # Инициализируем баланс из экономической конфигурации
+        if self.economy and self.economy.starting_balance:
+            self.balance.gold = self.economy.starting_balance.gold
+            self.balance.xp = self.economy.starting_balance.xp
+            self.balance.keys = self.economy.starting_balance.keys
+        
         self.balance.earn_per_sec = self.user_levels[self.balance.user_level].gold_per_sec
         
         # Создаем начальное состояние
@@ -158,9 +164,11 @@ class Workflow:
                     prev_day_start = current_day_start - 86400
                     last_check = prev_day_start + max(self.check_schedule)
             
-            # Начисляем пассивный доход за период
+            # Начисляем пассивный доход за период, но только если это не первый вход в игру
             time_passed = t - last_check
-            if time_passed > 0:  # Защита от отрицательных значений
+            is_first_login = t == min(self.check_schedule) + current_day_start and t < 86400
+            
+            if time_passed > 0 and not is_first_login:  # Не начисляем доход при первом входе
                 passive_income = self.balance.earn_per_sec * time_passed
                 old_balance = self.balance.gold
                 self.balance.gold += passive_income
@@ -189,6 +197,8 @@ class Workflow:
                         "keys_after": self.balance.keys
                     }
                     current_history["actions"].append(action)
+            elif is_first_login:
+                logger.info(f"{game_time}: Первый вход в игру, пассивный доход не начисляется")
             
             # Определяем конец игровой сессии
             session_end = t + self.economy.game_duration
