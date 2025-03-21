@@ -5,9 +5,10 @@
 import numpy as np
 import pandas as pd
 import dash
-from dash import Input, Output, State, callback, html, no_update
+from dash import Input, Output, State, callback, html, dcc, no_update, MATCH, ALL
 from typing import Dict, List, Any, Tuple, Optional
 import json
+from dash.exceptions import PreventUpdate
 
 from idadv_dash_simulator.simulator import Simulator
 from idadv_dash_simulator.config.simulation_config import create_sample_config
@@ -253,7 +254,7 @@ def _update_check_schedule_from_times(config: SimulationConfig, check_times_data
     day_seconds = 86400  # секунд в дне
     
     # Проверяем наличие данных
-    if not check_times_data or "times" not in check_times_data or not check_times_data["times"]:
+    if not check_times_data or "schedule" not in check_times_data or not check_times_data["schedule"]:
         # Если данных нет, используем значения по умолчанию из конфигурации
         check_schedule = [
             28800,      # 08:00
@@ -266,7 +267,7 @@ def _update_check_schedule_from_times(config: SimulationConfig, check_times_data
     
     # Преобразуем времена в секунды от начала дня
     check_schedule = []
-    for time_str in check_times_data["times"]:
+    for time_str in check_times_data["schedule"]:
         try:
             # Парсим время в формате "HH:MM"
             hours, minutes = map(int, time_str.split(":"))
@@ -429,127 +430,119 @@ def update_key_metrics(data, auto_run_data):
         ], style=style_box)
     ], style={"display": "flex", "flexDirection": "row", "justifyContent": "space-around", "flexWrap": "wrap"}) 
 
-@app.callback(
-    Output("check-times-display", "children"),
-    Input("check-times-store", "data")
-)
-def update_check_times_display(data):
+def create_time_dropdown(index: int, value: str) -> dcc.Dropdown:
     """
-    Обновляет отображение времен проверок.
+    Создает выпадающий список для выбора времени.
     
     Args:
-        data: Данные о временах проверок
+        index: Индекс выпадающего списка
+        value: Текущее значение времени
         
     Returns:
-        list: Список компонентов для отображения времен проверок
+        dcc.Dropdown: Компонент выпадающего списка
     """
-    if not data or "times" not in data:
-        times = ["08:00", "12:00", "16:00", "20:00"]
-    else:
-        times = data["times"]
-    
-    # Создаем простой вариант отображения без кнопок для удаления
-    time_items = []
-    for i, time in enumerate(times):
-        time_items.append(html.Div(
-            [
-                html.Span(f"{time}"),
-                html.Button(
-                    "-", 
-                    id={"type": "remove-specific-time-button", "index": i},
-                    style={
-                        "marginLeft": "5px",
-                        "backgroundColor": "#f44336",
-                        "color": "white",
-                        "border": "none",
-                        "borderRadius": "4px",
-                        "width": "25px",
-                        "height": "25px"
-                    }
-                )
-            ],
-            style={"marginBottom": "5px", "display": "flex", "alignItems": "center"}
-        ))
-    
-    # Кнопка добавления времени
-    add_button = html.Button(
-        "+", 
-        id="add-check-time-button",
+    return dcc.Dropdown(
+        id={"type": "check-time-dropdown", "index": index},
+        options=[
+            {"label": f"{h:02d}:00", "value": f"{h:02d}:00"}
+            for h in range(24)
+        ],
+        value=value,
+        clearable=False,
         style={
-            "backgroundColor": "#4CAF50",
-            "color": "white",
-            "border": "none",
-            "borderRadius": "4px",
-            "width": "25px",
-            "height": "25px"
+            "width": "120px",
+            "display": "inline-block",
+            "marginRight": "10px"
         }
     )
-    
-    return [
-        html.Div(time_items),
-        html.Div(add_button, style={"marginTop": "5px"})
-    ]
 
 @app.callback(
+    Output("check-times-container", "children"),
     Output("check-times-store", "data"),
-    [Input({"type": "remove-specific-time-button", "index": dash.ALL}, "n_clicks"),
-     Input("add-check-time-button", "n_clicks")],
-    [State("check-times-store", "data")],
+    [
+        Input("add-check-time-button", "n_clicks"),
+        Input({"type": "remove-check-time", "index": ALL}, "n_clicks"),
+        Input({"type": "check-time-dropdown", "index": ALL}, "value")
+    ],
+    [
+        State("check-times-store", "data"),
+        State({"type": "check-time-dropdown", "index": ALL}, "id")
+    ],
     prevent_initial_call=True
 )
-def update_check_times(remove_specific_clicks, add_clicks, current_data):
+def update_check_times(add_clicks, remove_clicks, dropdown_values, store_data, dropdown_ids):
     """
-    Обновляет список времен проверок при нажатии на кнопки добавления или удаления.
+    Обновляет расписание проверок при изменении.
     
     Args:
-        remove_specific_clicks: Количество нажатий на кнопки удаления конкретных времен
         add_clicks: Количество нажатий на кнопку добавления
-        current_data: Текущие данные о временах проверок
+        remove_clicks: Список нажатий на кнопки удаления
+        dropdown_values: Значения всех выпадающих списков
+        store_data: Текущие данные расписания
+        dropdown_ids: ID всех выпадающих списков
         
     Returns:
-        dict: Обновленные данные о временах проверок
+        tuple: (список компонентов UI, обновленные данные расписания)
     """
-    # Определяем, какая кнопка была нажата
-    ctx = dash.callback_context
-    if not ctx.triggered:
-        return current_data
+    ctx_trigger = dash.callback_context.triggered[0]
+    trigger_id = ctx_trigger["prop_id"]
     
-    trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
-    
-    if not current_data or "times" not in current_data:
-        current_data = {"times": ["08:00", "12:00", "16:00", "20:00"]}
-    
-    times = current_data["times"]
+    if not store_data or "schedule" not in store_data:
+        schedule = ["08:00", "12:00", "16:00", "20:00"]
+    else:
+        schedule = store_data["schedule"]
     
     # Обработка нажатия на кнопку добавления
-    if trigger_id == "add-check-time-button":
-        # Добавляем новое время проверки
-        if times:
-            last_time = times[-1]
-            h, m = map(int, last_time.split(":"))
-            new_h = (h + 4) % 24
-            new_time = f"{new_h:02d}:00"
-        else:
-            new_time = "12:00"
+    if trigger_id == "add-check-time-button.n_clicks" and add_clicks:
+        # Находим все доступные часы
+        used_hours = set(schedule)
+        available_hours = [f"{h:02d}:00" for h in range(24) if f"{h:02d}:00" not in used_hours]
         
-        times.append(new_time)
+        if available_hours:
+            schedule.append(available_hours[0])
+            schedule.sort()
     
-    # Обработка нажатия на кнопку удаления конкретного времени
-    elif "remove-specific-time-button" in trigger_id:
+    # Обработка нажатия на кнопку удаления
+    elif "remove-check-time" in trigger_id:
         try:
-            # Извлекаем индекс кнопки из ID
-            button_id = json.loads(trigger_id)
+            button_id = json.loads(trigger_id.split(".")[0])
             index = button_id.get("index")
-            
-            # Удаляем время с указанным индексом
-            if index is not None and 0 <= index < len(times):
-                times.pop(index)
+            if index is not None and 0 <= index < len(schedule):
+                schedule.pop(index)
         except (json.JSONDecodeError, ValueError, KeyError):
-            # Игнорируем ошибки при парсинге ID
             pass
     
-    # Убеждаемся, что список времен не пустой
-    if not times:
-        times = ["12:00"]
+    # Обработка изменения значения в выпадающем списке
+    elif "check-time-dropdown" in trigger_id:
+        for i, (value, id_dict) in enumerate(zip(dropdown_values, dropdown_ids)):
+            if i < len(schedule):
+                schedule[i] = value
+        schedule.sort()
     
-    return {"times": times} 
+    # Создаем компоненты UI
+    children = []
+    for i, time in enumerate(schedule):
+        children.append(html.Div([
+            create_time_dropdown(i, time),
+            html.Button(
+                "−",
+                id={"type": "remove-check-time", "index": i},
+                n_clicks=0,
+                style={
+                    "backgroundColor": "#ff4d4d",
+                    "color": "white",
+                    "border": "none",
+                    "borderRadius": "4px",
+                    "width": "30px",
+                    "height": "30px",
+                    "fontSize": "18px",
+                    "cursor": "pointer"
+                }
+            )
+        ], style={
+            "display": "flex",
+            "alignItems": "center",
+            "marginBottom": "10px"
+        }))
+    
+    return children, {"schedule": schedule} 
