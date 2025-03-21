@@ -54,4 +54,13 @@ class SimulationConfig:
     user_levels: Dict[int, UserLevelConfig]
     check_schedule: List[int]
     economy: EconomyConfig = field(default_factory=EconomyConfig)
-    simulation_algorithm: SimulationAlgorithm = SimulationAlgorithm.SEQUENTIAL  # Алгоритм симуляции 
+    simulation_algorithm: SimulationAlgorithm = SimulationAlgorithm.SEQUENTIAL  # Алгоритм симуляции
+    tapping: Optional['TappingConfig'] = None  # Конфигурация тапания
+
+@dataclass
+class TappingConfig:
+    """Конфигурация механики тапания."""
+    is_tapping: bool = False  # Флаг активности тапания
+    max_energy_capacity: int = 700  # Максимальный запас энергии
+    tap_speed: float = 3.0  # Скорость тапания (тапов в секунду)
+    gold_per_tap: float = 10.0  # Золото за 1 тап 

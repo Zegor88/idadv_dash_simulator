@@ -143,4 +143,24 @@ BASE_GOLD = 0.56
 STARTING_GOLD = 1000.0
 STARTING_XP = 1
 STARTING_KEYS = 1
-EARN_COEFFICIENT = 1.090824358 
+EARN_COEFFICIENT = 1.090824358
+
+# Параметры тапания
+DEFAULT_MAX_ENERGY = 700  # Максимальный запас энергии
+DEFAULT_TAP_SPEED = 3.0  # Скорость тапания (тапов в секунду)
+DEFAULT_GOLD_PER_TAP = 10.0  # Золото за 1 тап
+DEFAULT_IS_TAPPING = False  # По умолчанию тапание выключено
+
+# Цвета для графиков тапания
+TAPPING_COLORS = {
+    "taps": "#2196F3",  # Синий
+    "gold": "#FFD700",  # Золотой
+    "energy": "#4CAF50"  # Зеленый
+}
+
+# Стили для графиков тапания
+TAPPING_GRAPH_LAYOUT = {
+    **DEFAULT_FIGURE_LAYOUT,
+    "colorway": ["#2196F3", "#FFD700", "#4CAF50"],
+    "margin": {"l": 40, "r": 40, "t": 40, "b": 40}
+} 

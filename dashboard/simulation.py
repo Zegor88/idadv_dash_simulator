@@ -13,7 +13,7 @@ from dash.exceptions import PreventUpdate
 from idadv_dash_simulator.simulator import Simulator
 from idadv_dash_simulator.config.simulation_config import create_sample_config
 from idadv_dash_simulator.utils.economy import format_time
-from idadv_dash_simulator.models.config import EconomyConfig, SimulationAlgorithm, SimulationConfig, StartingBalanceConfig
+from idadv_dash_simulator.models.config import EconomyConfig, SimulationAlgorithm, SimulationConfig, StartingBalanceConfig, TappingConfig
 from idadv_dash_simulator.dashboard import app
 
 def create_status_message(status_type: str, message: str, details: Optional[str] = None) -> html.Div:
@@ -57,11 +57,16 @@ def create_status_message(status_type: str, message: str, details: Optional[str]
      State("starting-gold-input", "value"),
      State("starting-xp-input", "value"),
      State("starting-keys-input", "value"),
+     State("is-tapping-checkbox", "value"),
+     State("max-energy-input", "value"),
+     State("tap-speed-input", "value"),
+     State("gold-per-tap-input", "value"),
      State("auto-run-store", "data")]
 )
 def run_simulation(n_clicks, base_gold, earn_coefficient, cooldown_multiplier, 
                   check_times_data, game_duration, simulation_algorithm, 
-                  starting_gold, starting_xp, starting_keys, auto_run_data):
+                  starting_gold, starting_xp, starting_keys, 
+                  is_tapping, max_energy, tap_speed, gold_per_tap, auto_run_data):
     """
     Запускает симуляцию и возвращает результаты.
     
@@ -76,6 +81,10 @@ def run_simulation(n_clicks, base_gold, earn_coefficient, cooldown_multiplier,
         starting_gold: Начальное количество золота
         starting_xp: Начальный опыт
         starting_keys: Начальное количество ключей
+        is_tapping: Флаг активации тапания
+        max_energy: Максимальный запас энергии
+        tap_speed: Скорость тапания (тапов в секунду)
+        gold_per_tap: Золото за 1 тап
         auto_run_data: Состояние флага автозапуска
         
     Returns:
@@ -90,75 +99,53 @@ def run_simulation(n_clicks, base_gold, earn_coefficient, cooldown_multiplier,
         )
         return status_message, no_update, no_update, {"auto_run": False}
     
-    # Создаем и настраиваем конфигурацию
-    config = _create_simulation_config(
-        base_gold=base_gold,
-        earn_coefficient=earn_coefficient,
-        cooldown_multiplier=cooldown_multiplier,
-        check_times_data=check_times_data,
-        game_duration=game_duration,
-        simulation_algorithm=simulation_algorithm,
-        starting_gold=starting_gold,
-        starting_xp=starting_xp,
-        starting_keys=starting_keys
-    )
-    
-    # Запускаем симуляцию
-    simulator = Simulator(config)
-    result = simulator.run_simulation()
-    
-    # Подготавливаем данные для сохранения
-    user_levels_data = {
-        level: {
-            "xp_required": level_config.xp_required,
-            "gold_per_sec": level_config.gold_per_sec,
-            "keys_reward": level_config.keys_reward
-        } for level, level_config in config.user_levels.items()
-    }
-    
-    algorithm_name = "Последовательное улучшение" if config.simulation_algorithm == SimulationAlgorithm.SEQUENTIAL else "Первое доступное улучшение"
-    
-    # Создаем информацию о расписании проверок
-    check_times = []
-    for seconds in config.check_schedule:
-        h = seconds // 3600
-        m = (seconds % 3600) // 60
-        check_times.append(f"{h:02d}:{m:02d}")
-    
-    check_times_str = ", ".join(check_times)
-    
-    # Создаем информационное сообщение о завершении симуляции
-    formatted_time = format_time(result.timestamp)
-    status_message = create_status_message(
-        'success',
-        f"Симуляция успешно завершена за {formatted_time}!",
-        f"Алгоритм: {algorithm_name}, Базовое золото: {base_gold}, Коэффициент: {earn_coefficient}, "
-        f"Множитель кулдауна: {cooldown_multiplier}, Проверки: {check_times_str}, "
-        f"Длительность сессии: {game_duration} мин."
-    )
-    
-    # Переводим историю в формат JSON для хранения
-    history_data = [state for state in result.history]
-    
-    # Преобразуем конфигурацию в формат для хранения
-    config_data = {
-        "locations": {
-            str(loc_id): {
-                "rarity": loc_config.rarity.name,
-                "levels": {
-                    str(level): {
-                        "cost": level_config.cost,
-                        "xp_reward": level_config.xp_reward
-                    } for level, level_config in loc_config.levels.items()
-                }
-            } for loc_id, loc_config in config.locations.items()
-        },
-        "location_cooldowns": {str(level): cooldown for level, cooldown in config.location_cooldowns.items()},
-        "simulation_algorithm": config.simulation_algorithm.value,
-        "game_duration": config.economy.game_duration,
-        "check_schedule": config.check_schedule
-    }
-    
+    # Настраиваем и запускаем симуляцию
+    try:
+        # Создаем конфигурацию
+        config = _create_simulation_config(
+            base_gold=base_gold, 
+            earn_coefficient=earn_coefficient, 
+            cooldown_multiplier=cooldown_multiplier, 
+            check_times_data=check_times_data, 
+            game_duration=game_duration, 
+            simulation_algorithm=simulation_algorithm,
+            starting_gold=starting_gold,
+            starting_xp=starting_xp,
+            starting_keys=starting_keys,
+            is_tapping=is_tapping,
+            max_energy=max_energy,
+            tap_speed=tap_speed,
+            gold_per_tap=gold_per_tap
+        )
+        
+        # Запускаем симуляцию
+        simulator = Simulator(config)
+        result = simulator.run_simulation()
+        
+        # Формируем сообщение об успешной симуляции
+        completion_message = f"Симуляция завершена за {result.timestamp} секунд"
+        status_message = create_status_message("success", "Симуляция успешно выполнена", completion_message)
+        
+        # Получаем данные для отображения
+        history_data = result.history
+        config_data = {
+            "base_gold": base_gold,
+            "earn_coefficient": earn_coefficient,
+            "cooldown_multiplier": cooldown_multiplier,
+            "check_times": check_times_data.get("schedule", []),
+            "game_duration": game_duration,
+            "simulation_algorithm": simulation_algorithm,
+            "max_level": max(simulator.workflow.user_levels.keys(), default=0)
+        }
+        
+        # Данные об уровнях для графиков
+        user_levels_data = {str(k): v.gold_per_sec for k, v in simulator.workflow.user_levels.items()}
+        
+    except Exception as e:
+        status_message = create_status_message("error", "Ошибка при выполнении симуляции", str(e))
+        return status_message, None, None, {"auto_run": False}
+        
+    # Данные симуляции для хранилища
     simulation_data = {
         "history": history_data, 
         "timestamp": result.timestamp, 
@@ -170,7 +157,8 @@ def run_simulation(n_clicks, base_gold, earn_coefficient, cooldown_multiplier,
 
 def _create_simulation_config(base_gold: float, earn_coefficient: float, cooldown_multiplier: float, 
                              check_times_data: dict, game_duration: int, simulation_algorithm: str, 
-                             starting_gold: float, starting_xp: float, starting_keys: int) -> SimulationConfig:
+                             starting_gold: float, starting_xp: float, starting_keys: int,
+                             is_tapping: bool, max_energy: float, tap_speed: float, gold_per_tap: float) -> SimulationConfig:
     """
     Создает конфигурацию симуляции на основе параметров.
     
@@ -184,6 +172,10 @@ def _create_simulation_config(base_gold: float, earn_coefficient: float, cooldow
         starting_gold: Начальное количество золота
         starting_xp: Начальный опыт
         starting_keys: Начальное количество ключей
+        is_tapping: Флаг активации тапания
+        max_energy: Максимальный запас энергии
+        tap_speed: Скорость тапания (тапов в секунду)
+        gold_per_tap: Золото за 1 тап
         
     Returns:
         SimulationConfig: Конфигурация для симуляции
@@ -237,6 +229,15 @@ def _create_simulation_config(base_gold: float, earn_coefficient: float, cooldow
     
     # Устанавливаем алгоритм симуляции
     config.simulation_algorithm = SimulationAlgorithm(simulation_algorithm)
+    
+    # Добавляем конфигурацию тапания, если она включена
+    if is_tapping and 'is_tapping' in is_tapping:
+        config.tapping = TappingConfig(
+            is_tapping=True,
+            max_energy_capacity=max_energy,
+            tap_speed=tap_speed,
+            gold_per_tap=gold_per_tap
+        )
     
     # Обновляем расписание проверок на основе введенных времен
     _update_check_schedule_from_times(config, check_times_data)
