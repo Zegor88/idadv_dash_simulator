@@ -8,11 +8,15 @@ import dash
 from dash import Input, Output, State, callback, html, no_update
 from typing import Dict, List, Any, Tuple, Optional
 import json
+import traceback
+from datetime import datetime
 
 from idadv_dash_simulator.simulator import Simulator
 from idadv_dash_simulator.config.simulation_config import create_sample_config
-from idadv_dash_simulator.utils.economy import format_time
-from idadv_dash_simulator.models.config import EconomyConfig, SimulationAlgorithm, SimulationConfig, StartingBalanceConfig
+from idadv_dash_simulator.utils.economy import format_time, calculate_gold_per_sec
+from idadv_dash_simulator.models.config import EconomyConfig, SimulationConfig, StartingBalanceConfig, TappingConfig
+from idadv_dash_simulator.models.enums import SimulationAlgorithm
+from idadv_dash_simulator.utils.validation import validate_config
 from idadv_dash_simulator.dashboard import app
 
 def create_status_message(status_type: str, message: str, details: Optional[str] = None) -> html.Div:
@@ -369,6 +373,11 @@ def _create_simulation_config(base_gold: float, earn_coefficient: float, cooldow
         ),
         game_duration=game_duration_seconds
     )
+    
+    # Обновляем значения gold_per_sec для каждого уровня пользователя
+    # в соответствии с новыми параметрами экономики
+    for level, level_config in config.user_levels.items():
+        config.user_levels[level].gold_per_sec = calculate_gold_per_sec(base_gold, earn_coefficient, level)
     
     # Обновляем множитель кулдауна
     for level, cooldown in config.location_cooldowns.items():

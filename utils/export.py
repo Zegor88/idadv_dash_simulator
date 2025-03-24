@@ -141,4 +141,22 @@ def export_location_upgrades_table(data, directory='output'):
         data=data,
         filename="location_upgrades_history",
         directory=directory
+    )
+
+
+def export_tapping_stats_table(data, directory='output'):
+    """
+    Экспортирует таблицу статистики тапинга в CSV.
+    
+    Args:
+        data (list): Данные таблицы
+        directory (str): Директория для сохранения
+    
+    Returns:
+        str: Путь к созданному файлу
+    """
+    return export_table_to_csv(
+        data=data,
+        filename="tapping_stats",
+        directory=directory
     ) 

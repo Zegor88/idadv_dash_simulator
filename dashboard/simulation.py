@@ -12,7 +12,7 @@ from dash.exceptions import PreventUpdate
 
 from idadv_dash_simulator.simulator import Simulator
 from idadv_dash_simulator.config.simulation_config import create_sample_config
-from idadv_dash_simulator.utils.economy import format_time
+from idadv_dash_simulator.utils.economy import format_time, calculate_gold_per_sec
 from idadv_dash_simulator.models.config import EconomyConfig, SimulationAlgorithm, SimulationConfig, StartingBalanceConfig, TappingConfig
 from idadv_dash_simulator.dashboard import app
 
@@ -158,7 +158,7 @@ def run_simulation(n_clicks, base_gold, earn_coefficient, cooldown_multiplier,
 def _create_simulation_config(base_gold: float, earn_coefficient: float, cooldown_multiplier: float, 
                              check_times_data: dict, game_duration: int, simulation_algorithm: str, 
                              starting_gold: float, starting_xp: float, starting_keys: int,
-                             is_tapping: bool, max_energy: float, tap_speed: float, tap_coef: float) -> SimulationConfig:
+                             is_tapping: list, max_energy: float, tap_speed: float, tap_coef: float) -> SimulationConfig:
     """
     Создает конфигурацию симуляции на основе параметров.
     
@@ -228,6 +228,11 @@ def _create_simulation_config(base_gold: float, earn_coefficient: float, cooldow
         game_duration=game_duration_seconds
     )
     
+    # Обновляем значения gold_per_sec для каждого уровня пользователя
+    # в соответствии с новыми параметрами экономики
+    for level, level_config in config.user_levels.items():
+        config.user_levels[level].gold_per_sec = calculate_gold_per_sec(base_gold, earn_coefficient, level)
+    
     # Обновляем множитель кулдауна
     for level, cooldown in config.location_cooldowns.items():
         config.location_cooldowns[level] = int(cooldown * cooldown_multiplier)
@@ -236,7 +241,7 @@ def _create_simulation_config(base_gold: float, earn_coefficient: float, cooldow
     config.simulation_algorithm = SimulationAlgorithm(simulation_algorithm)
     
     # Добавляем конфигурацию тапания, если она включена
-    if is_tapping and 'is_tapping' in is_tapping:
+    if is_tapping and isinstance(is_tapping, list) and 'is_tapping' in is_tapping:
         print(f"DEBUG: Creating tapping config with tap_coef={tap_coef_value}")
         try:
             tap_coef_value = float(tap_coef_value)

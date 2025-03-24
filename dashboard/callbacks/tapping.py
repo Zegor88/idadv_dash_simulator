@@ -13,6 +13,7 @@ from idadv_dash_simulator.models.config import TappingConfig
 from idadv_dash_simulator.workflow.tapping import TappingEngine, TapDay, TapSession
 from idadv_dash_simulator.config.dashboard_config import TAPPING_COLORS, TAPPING_GRAPH_LAYOUT
 from idadv_dash_simulator.dashboard import app
+from idadv_dash_simulator.utils.export import export_tapping_stats_table
 
 @app.callback(
     [Output("tapping-stats-store", "data")],
@@ -512,6 +513,7 @@ def update_tapping_stats_table(tapping_data):
     
     # Создаем данные для таблицы
     table_data = []
+    export_data = []
     for day in days:
         day_num = day["day"] + 1  # +1 для отображения с дня 1
         total_taps = day["total_taps"]
@@ -536,6 +538,19 @@ def update_tapping_stats_table(tapping_data):
             "level": f"{user_level}",
             "gold_per_tap": f"{gold_per_tap:.1f}"
         })
+        
+        # Данные для экспорта CSV (численные значения)
+        export_data.append({
+            "day": day_num,
+            "taps": total_taps,
+            "energy": total_energy,
+            "gold": total_gold,
+            "user_level": user_level,
+            "gold_per_tap": gold_per_tap
+        })
+    
+    # Экспортируем таблицу в CSV (используем данные с числовыми значениями)
+    export_tapping_stats_table(export_data)
     
     return table_data
 
