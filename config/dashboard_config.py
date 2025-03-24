@@ -145,10 +145,10 @@ STARTING_XP = 1
 STARTING_KEYS = 1
 EARN_COEFFICIENT = 1.090824358
 
-# Параметры тапания
+# Параметры тапания по умолчанию
 DEFAULT_MAX_ENERGY = 700  # Максимальный запас энергии
 DEFAULT_TAP_SPEED = 3.0  # Скорость тапания (тапов в секунду)
-DEFAULT_GOLD_PER_TAP = 10.0  # Золото за 1 тап
+DEFAULT_TAP_COEF = 1.0  # Множитель золота за тап (уровень персонажа * множитель)
 DEFAULT_IS_TAPPING = False  # По умолчанию тапание выключено
 
 # Цвета для графиков тапания
@@ -163,4 +163,11 @@ TAPPING_GRAPH_LAYOUT = {
     **DEFAULT_FIGURE_LAYOUT,
     "colorway": ["#2196F3", "#FFD700", "#4CAF50"],
     "margin": {"l": 40, "r": 40, "t": 40, "b": 40}
+}
+
+# Цвета для отображения прогресса уровней
+LEVEL_PROGRESS_COLORS = {
+    "level_line": "#FF5722",   # Оранжевый для линии уровня
+    "xp_area": "rgba(76, 175, 80, 0.3)",  # Полупрозрачный зеленый для области XP
+    "level_point": "#FF9800"  # Ярко-оранжевый для точек уровней
 } 

@@ -116,9 +116,9 @@ def parse_arguments():
     )
     
     parser.add_argument(
-        "--gold-per-tap", 
+        "--tap-coef", 
         type=float,
-        help="Количество золота за 1 тап"
+        help="Множитель золота за тап (уровень персонажа * tap_coef = золото за тап)"
     )
     
     parser.add_argument(
@@ -182,8 +182,8 @@ def main():
         if args.tap_speed is not None:
             config.tapping.tap_speed = args.tap_speed
             
-        if args.gold_per_tap is not None:
-            config.tapping.gold_per_tap = args.gold_per_tap
+        if args.tap_coef is not None:
+            config.tapping.tap_coef = args.tap_coef
     
     # Обновляем расписание проверок
     if args.checks_per_day is not None:
@@ -231,22 +231,30 @@ def main():
         # Получаем значения с проверкой на None
         max_energy = simulator.config.tapping.max_energy_capacity or 700
         tap_speed = simulator.config.tapping.tap_speed or 3.0
-        gold_per_tap = simulator.config.tapping.gold_per_tap or 10.0
+        tap_coef = simulator.config.tapping.tap_coef or 0.1
         
         print("\nTapping information:")
         print(f"  - Status: {'Enabled' if simulator.config.tapping.is_tapping else 'Disabled'}")
         print(f"  - Energy capacity: {max_energy}")
         print(f"  - Tap speed: {tap_speed:.1f} taps/sec")
-        print(f"  - Gold per tap: {gold_per_tap:.1f}")
+        print(f"  - Tap coef: {tap_coef:.2f}")
         
         # Расчет золота от тапания за все дни симуляции
         days_simulated = result.timestamp // 86400 + 1
+        
+        # Получаем финальный уровень персонажа для расчета
+        final_user_level = simulator.workflow.balance.user_level
+        gold_per_tap = final_user_level * tap_coef
+        
+        # Расчет золота от тапания с учетом уровня персонажа
         tapping_gold_per_day = max_energy * 0.7 * gold_per_tap
         total_tapping_gold = tapping_gold_per_day * days_simulated
         
-        print(f"  - Примерное золото от тапания за день: {tapping_gold_per_day:.2f}")
-        print(f"  - Всего золота от тапания за {days_simulated} дней: {total_tapping_gold:.2f}")
-        print(f"  - Доля тапания в общем доходе: {(total_tapping_gold / simulator.workflow.balance.gold * 100):.1f}%")
+        print(f"  - Final user level: {final_user_level}")
+        print(f"  - Gold per tap: {gold_per_tap:.2f} (level {final_user_level} * coef {tap_coef:.2f})")
+        print(f"  - Estimated tapping gold per day: {tapping_gold_per_day:.2f}")
+        print(f"  - Total tapping gold for {days_simulated} days: {total_tapping_gold:.2f}")
+        print(f"  - Share in total income: {(total_tapping_gold / simulator.workflow.balance.gold * 100):.1f}%")
     
     # Если указан флаг --verbose, выводим подробную информацию
     if args.verbose:
@@ -270,17 +278,17 @@ def main():
             # Получаем значения с проверкой на None
             max_energy = simulator.config.tapping.max_energy_capacity or 700
             tap_speed = simulator.config.tapping.tap_speed or 3.0
-            gold_per_tap = simulator.config.tapping.gold_per_tap or 10.0
+            tap_coef = simulator.config.tapping.tap_coef or 0.1
             
             days_simulated = result.timestamp // 86400 + 1
-            tapping_gold_per_day = max_energy * 0.7 * gold_per_tap
+            tapping_gold_per_day = max_energy * 0.7 * tap_coef
             total_tapping_gold = tapping_gold_per_day * days_simulated
             
             tapping_info = {
                 "enabled": simulator.config.tapping.is_tapping,
                 "max_energy": max_energy,
                 "tap_speed": tap_speed,
-                "gold_per_tap": gold_per_tap,
+                "tap_coef": tap_coef,
                 "gold_per_day": tapping_gold_per_day,
                 "total_gold": total_tapping_gold,
                 "share_in_total_income": (total_tapping_gold / simulator.workflow.balance.gold * 100)

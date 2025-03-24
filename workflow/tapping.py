@@ -20,6 +20,7 @@ class TapSession:
     taps_count: int = 0  # Количество выполненных тапов
     gold_earned: float = 0  # Заработанное золото
     energy_history: List[Tuple[int, int]] = field(default_factory=list)  # История энергии (время, значение)
+    user_level: int = 1  # Уровень персонажа во время сессии
 
 @dataclass
 class TapDay:
@@ -47,8 +48,8 @@ class TappingEngine:
         """
         self.config = config
         # Устанавливаем значения по умолчанию, если они отсутствуют
-        if self.config.gold_per_tap is None:
-            self.config.gold_per_tap = 10.0
+        if self.config.tap_coef is None:
+            self.config.tap_coef = 1.0
         if self.config.tap_speed is None:
             self.config.tap_speed = 3.0
         if self.config.max_energy_capacity is None:
@@ -56,14 +57,17 @@ class TappingEngine:
             
         self.days_data: List[TapDay] = []
         self.current_energy = self.config.max_energy_capacity
+        self.user_level = 1  # Устанавливаем начальный уровень персонажа
     
-    def simulate_sessions(self, session_times: List[int], session_duration: int) -> List[TapDay]:
+    def simulate_sessions(self, session_times: List[int], session_duration: int, user_level: int = 1, user_levels_by_day: Dict[int, int] = None) -> List[TapDay]:
         """
         Симулирует все игровые сессии и возвращает агрегированные данные по дням.
         
         Args:
             session_times: Список времени начала сессий (в секундах)
             session_duration: Длительность каждой сессии (в минутах)
+            user_level: Базовый уровень персонажа (влияет на золото за тап)
+            user_levels_by_day: Словарь уровней персонажа по дням (индекс 0 = день 1)
             
         Returns:
             List[TapDay]: Список данных по дням
@@ -75,6 +79,7 @@ class TappingEngine:
         self.days_data = []
         # Начинаем с полным запасом энергии
         self.current_energy = self.config.max_energy_capacity
+        self.user_level = user_level
         
         # Преобразуем длительность сессии из минут в секунды
         session_duration_sec = session_duration * 60
@@ -87,6 +92,16 @@ class TappingEngine:
         for session_idx, session_start in enumerate(session_times):
             day_number = session_start // 86400
             
+            # Определяем текущий уровень пользователя для этой сессии на основе дня
+            if user_levels_by_day and day_number in user_levels_by_day:
+                current_level = user_levels_by_day[day_number]
+                logger.info(f"День {day_number+1}: установлен уровень пользователя {current_level}")
+            else:
+                current_level = self.user_level
+            
+            # Обновляем текущий уровень пользователя для движка
+            self.user_level = current_level
+            
             # Восстанавливаем энергию медленно между сессиями (0.1 ед/сек)
             if last_session_end > 0:
                 time_passed = session_start - last_session_end
@@ -98,18 +113,22 @@ class TappingEngine:
                 
                 logger.info(f"Сессия {session_idx+1}: Восстановлено {energy_recovered:.1f} энергии за {time_passed} секунд между сессиями")
             
-            # Симулируем текущую сессию
+            # Симулируем текущую сессию с текущим уровнем пользователя
             session = self._simulate_session(session_start, session_duration_sec)
             last_session_end = session_start + session_duration_sec
             
             # Добавляем сессию в соответствующий день
             day = self._get_or_create_day(day_number)
+            
+            # Обновляем уровень пользователя в объекте сессии, чтобы сохранить эту информацию
+            session.user_level = self.user_level
+            
             day.sessions.append(session)
             day.total_taps += session.taps_count
             day.total_energy += session.energy_used
             day.total_gold += session.gold_earned
             
-            logger.info(f"Сессия {session_idx+1}: тапов={session.taps_count:.0f}, энергии={session.energy_used:.0f}, золота={session.gold_earned:.0f}")
+            logger.info(f"Сессия {session_idx+1}: тапов={session.taps_count:.0f}, энергии={session.energy_used:.0f}, золота={session.gold_earned:.0f}, уровень={session.user_level}")
         
         return self.days_data
     
@@ -124,7 +143,11 @@ class TappingEngine:
         Returns:
             TapSession: Данные сессии
         """
-        session = TapSession(start_time=start_time, duration=duration)
+        session = TapSession(start_time=start_time, duration=duration, user_level=self.user_level)
+        
+        # Логируем информацию о текущей сессии для отладки
+        day_number = start_time // 86400
+        logger.info(f"Симуляция сессии для дня {day_number+1}, уровень пользователя: {self.user_level}")
         
         # Добавляем начальное состояние энергии
         session.energy_history.append((start_time, self.current_energy))
@@ -172,7 +195,15 @@ class TappingEngine:
                     session.energy_used += taps_per_second
                     session.taps_count += taps_per_second
                     total_taps_in_session += taps_per_second
-                    session.gold_earned += taps_per_second * self.config.gold_per_tap
+                    
+                    # Расчет золота за тап с учетом уровня персонажа
+                    gold_per_tap = self.user_level * self.config.tap_coef
+                    session.gold_earned += taps_per_second * gold_per_tap
+                    
+                    # Логирование для отладки
+                    if taps_per_second > 0:
+                        logger.info(f"Уровень пользователя: {self.user_level}, коэффициент: {self.config.tap_coef}, золото за тап: {gold_per_tap:.2f}")
+                        logger.info(f"Тапов: {taps_per_second:.1f}, получено золота: {taps_per_second * gold_per_tap:.1f}")
                     
                     # Если энергия закончилась, прекращаем активное тапание
                     if self.current_energy <= 0 or (self.config.max_energy_capacity <= 700 and 

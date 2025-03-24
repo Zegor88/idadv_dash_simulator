@@ -66,7 +66,7 @@ def create_status_message(status_type: str, message: str, details: Optional[str]
 def run_simulation(n_clicks, base_gold, earn_coefficient, cooldown_multiplier, 
                   check_times_data, game_duration, simulation_algorithm, 
                   starting_gold, starting_xp, starting_keys, 
-                  is_tapping, max_energy, tap_speed, gold_per_tap, auto_run_data):
+                  is_tapping, max_energy, tap_speed, tap_coef, auto_run_data):
     """
     Запускает симуляцию и возвращает результаты.
     
@@ -84,7 +84,7 @@ def run_simulation(n_clicks, base_gold, earn_coefficient, cooldown_multiplier,
         is_tapping: Флаг активации тапания
         max_energy: Максимальный запас энергии
         tap_speed: Скорость тапания (тапов в секунду)
-        gold_per_tap: Золото за 1 тап
+        tap_coef: Множитель тапания (уровень персонажа * tap_coef = золото за тап)
         auto_run_data: Состояние флага автозапуска
         
     Returns:
@@ -115,7 +115,7 @@ def run_simulation(n_clicks, base_gold, earn_coefficient, cooldown_multiplier,
             is_tapping=is_tapping,
             max_energy=max_energy,
             tap_speed=tap_speed,
-            gold_per_tap=gold_per_tap
+            tap_coef=tap_coef
         )
         
         # Запускаем симуляцию
@@ -158,7 +158,7 @@ def run_simulation(n_clicks, base_gold, earn_coefficient, cooldown_multiplier,
 def _create_simulation_config(base_gold: float, earn_coefficient: float, cooldown_multiplier: float, 
                              check_times_data: dict, game_duration: int, simulation_algorithm: str, 
                              starting_gold: float, starting_xp: float, starting_keys: int,
-                             is_tapping: bool, max_energy: float, tap_speed: float, gold_per_tap: float) -> SimulationConfig:
+                             is_tapping: bool, max_energy: float, tap_speed: float, tap_coef: float) -> SimulationConfig:
     """
     Создает конфигурацию симуляции на основе параметров.
     
@@ -175,7 +175,7 @@ def _create_simulation_config(base_gold: float, earn_coefficient: float, cooldow
         is_tapping: Флаг активации тапания
         max_energy: Максимальный запас энергии
         tap_speed: Скорость тапания (тапов в секунду)
-        gold_per_tap: Золото за 1 тап
+        tap_coef: Множитель тапания (уровень персонажа * tap_coef = золото за тап)
         
     Returns:
         SimulationConfig: Конфигурация для симуляции
@@ -211,7 +211,7 @@ def _create_simulation_config(base_gold: float, earn_coefficient: float, cooldow
     # Значения тапания с защитой от None
     max_energy_value = int(max_energy) if max_energy is not None and max_energy > 0 else 700
     tap_speed_value = float(tap_speed) if tap_speed is not None and tap_speed > 0 else 3.0
-    gold_per_tap_value = float(gold_per_tap) if gold_per_tap is not None and gold_per_tap > 0 else 10.0
+    tap_coef_value = float(tap_coef) if tap_coef is not None and tap_coef > 0 else 1.0
     
     # Преобразуем длительность игровой сессии в секунды
     game_duration_seconds = game_duration * 60
@@ -237,19 +237,19 @@ def _create_simulation_config(base_gold: float, earn_coefficient: float, cooldow
     
     # Добавляем конфигурацию тапания, если она включена
     if is_tapping and 'is_tapping' in is_tapping:
-        print(f"DEBUG: Creating tapping config with gold_per_tap={gold_per_tap_value}")
+        print(f"DEBUG: Creating tapping config with tap_coef={tap_coef_value}")
         try:
-            gold_per_tap_value = float(gold_per_tap_value)
-            if gold_per_tap_value <= 0:
-                gold_per_tap_value = 10.0
+            tap_coef_value = float(tap_coef_value)
+            if tap_coef_value <= 0:
+                tap_coef_value = 1.0
         except (TypeError, ValueError):
-            gold_per_tap_value = 10.0
+            tap_coef_value = 1.0
         
         config.tapping = TappingConfig(
             is_tapping=True,
             max_energy_capacity=max_energy_value,
             tap_speed=tap_speed_value,
-            gold_per_tap=gold_per_tap_value
+            tap_coef=tap_coef_value
         )
     else:
         # Если тапание отключено, создаем конфигурацию с is_tapping=False
@@ -257,7 +257,7 @@ def _create_simulation_config(base_gold: float, earn_coefficient: float, cooldow
             is_tapping=False,
             max_energy_capacity=max_energy_value,
             tap_speed=tap_speed_value,
-            gold_per_tap=gold_per_tap_value
+            tap_coef=tap_coef_value
         )
         print("DEBUG: Tapping is disabled in config")
     
@@ -423,6 +423,8 @@ def update_key_metrics(data, auto_run_data):
         total_days = 1  # Чтобы избежать деления на ноль
         
     days_without_upgrades = total_days - len(days_with_upgrades)
+    # Убедимся, что days_without_upgrades не отрицательное число
+    days_without_upgrades = max(0, days_without_upgrades)
     days_without_upgrades_percent = (days_without_upgrades / total_days * 100) if total_days > 0 else 0
     
     # Стиль для блоков метрик
@@ -449,7 +451,7 @@ def update_key_metrics(data, auto_run_data):
         
         html.Div([
             html.H3(f"{days_without_upgrades_percent:.1f}%"),
-            html.P(f"Days without upgrades ({days_without_upgrades} from {total_days})")
+            html.P(f"Days without upgrades ({days_without_upgrades} of {total_days})")
         ], style=style_box)
     ], style={"display": "flex", "flexDirection": "row", "justifyContent": "space-around", "flexWrap": "wrap"}) 
 

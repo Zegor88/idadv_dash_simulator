@@ -71,7 +71,11 @@ class Simulator:
             # Создаем движок тапания только если тапание включено
             if self.config.tapping.is_tapping:
                 self.workflow.tapping_engine = TappingEngine(self.config.tapping)
-                print(f"DEBUG: Tapping engine initialized with gold_per_tap={self.config.tapping.gold_per_tap}")
+                # Получаем начальный уровень персонажа из экономики
+                initial_level = 1
+                if self.config.economy and self.config.economy.starting_balance:
+                    initial_level = max(1, self.config.economy.starting_balance.xp // 1000)
+                print(f"DEBUG: Tapping engine initialized with tap_coef={self.config.tapping.tap_coef}, initial level={initial_level}")
             else:
                 print("DEBUG: Tapping is disabled in workflow")
         

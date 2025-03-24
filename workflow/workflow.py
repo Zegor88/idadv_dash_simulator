@@ -181,15 +181,16 @@ class Workflow:
                     
                     # Проверяем, что все параметры тапания существуют
                     max_energy = self.tapping_config.max_energy_capacity
-                    gold_per_tap = self.tapping_config.gold_per_tap
+                    tap_coef = self.tapping_config.tap_coef
                     
                     if max_energy is None:
                         max_energy = 700
-                    if gold_per_tap is None:
-                        gold_per_tap = 10.0
+                    if tap_coef is None:
+                        tap_coef = 1.0
                         
                     # Примерное количество золота, которое можно получить при полном использовании энергии
-                    # Используем стандартную формулу: энергия * коэффициент тапа * золото за тап
+                    # Используем новую формулу: энергия * коэффициент тапа * (уровень персонажа * tap_coef)
+                    gold_per_tap = self.balance.user_level * tap_coef
                     tapping_gold = max_energy * 0.7 * gold_per_tap
                     
                     old_balance = self.balance.gold
@@ -198,7 +199,7 @@ class Workflow:
                     logger.info(
                         f"{game_time}: Added tapping income for day {day_number + 1}:\n"
                         f"  - Old balance: {old_balance:.2f} gold\n"
-                        f"  - Tapping income: {tapping_gold:.2f} gold\n"
+                        f"  - Tapping income: {tapping_gold:.2f} gold (level {self.balance.user_level} * tap_coef {tap_coef} = {gold_per_tap:.2f} gold per tap)\n"
                         f"  - New balance: {self.balance.gold:.2f} gold"
                     )
                     

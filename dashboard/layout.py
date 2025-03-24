@@ -15,7 +15,8 @@ from idadv_dash_simulator.config.dashboard_config import (
     STYLE_HEADER, STYLE_BUTTON,
     BASE_GOLD, STARTING_GOLD, STARTING_XP, STARTING_KEYS, EARN_COEFFICIENT, LOCATION_COUNT,
     DEFAULT_GAME_DURATION, DEFAULT_CHECK_SCHEDULE,
-    DEFAULT_MAX_ENERGY, DEFAULT_TAP_SPEED, DEFAULT_GOLD_PER_TAP, DEFAULT_IS_TAPPING
+    DEFAULT_MAX_ENERGY, DEFAULT_TAP_SPEED, DEFAULT_TAP_COEF, DEFAULT_IS_TAPPING,
+    TAPPING_COLORS, TAPPING_GRAPH_LAYOUT, LEVEL_PROGRESS_COLORS, DEFAULT_FIGURE_LAYOUT
 )
 from idadv_dash_simulator.models.config import SimulationAlgorithm
 from idadv_dash_simulator.simulator import Simulator
@@ -249,15 +250,19 @@ def create_settings_panel():
             
             # Gold per tap
             html.Div([
-                html.Label("Gold per tap:", style={"display": "block", "marginBottom": "5px"}),
+                html.Label("Tap coefficient:", style={"display": "block", "marginBottom": "5px"}),
                 dcc.Input(
                     id="gold-per-tap-input",
                     type="number",
-                    value=DEFAULT_GOLD_PER_TAP,
-                    step=1,
-                    min=1,
+                    value=DEFAULT_TAP_COEF,
+                    step=0.1,
+                    min=0.1,
                     max=10000,
                     style={"width": "100%", "marginBottom": "15px", "padding": "8px"}
+                ),
+                html.P(
+                    "Multiplier for tap gold (user level * coefficient = gold per tap)",
+                    style={"fontSize": "12px", "color": "#666", "marginTop": "5px"}
                 ),
             ]),
             
@@ -603,9 +608,11 @@ def create_tapping_tab():
                 id="tapping-stats-table",
                 columns=[
                     {"name": "Day", "id": "day"},
-                    {"name": "Number of taps", "id": "taps"},
+                    {"name": "Taps count", "id": "taps"},
                     {"name": "Energy spent", "id": "energy"},
                     {"name": "Gold received", "id": "gold"},
+                    {"name": "User level", "id": "level"},
+                    {"name": "Gold per tap", "id": "gold_per_tap"}
                 ],
                 style_header={
                     'backgroundColor': '#f8f9fa',

@@ -178,7 +178,7 @@ def create_sample_config() -> SimulationConfig:
         is_tapping=True,  # Включаем тапание по умолчанию
         max_energy_capacity=700,  # Максимальный запас энергии
         tap_speed=3.0,  # Скорость тапания (тапов в секунду)
-        gold_per_tap=10.0  # Золото за 1 тап
+        tap_coef=1.0  # Множитель золота за тап (уровень персонажа * tap_coef)
     )
     
     return SimulationConfig(

@@ -63,4 +63,4 @@ class TappingConfig:
     is_tapping: bool = False  # Флаг активности тапания
     max_energy_capacity: int = 700  # Максимальный запас энергии
     tap_speed: float = 3.0  # Скорость тапания (тапов в секунду)
-    gold_per_tap: float = 10.0  # Золото за 1 тап 
+    tap_coef: float = 1.0  # Множитель золота за тап (уровень персонажа * tap_coef) 

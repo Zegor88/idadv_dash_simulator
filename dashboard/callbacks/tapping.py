@@ -25,7 +25,7 @@ from idadv_dash_simulator.dashboard import app
      State("game-duration-input", "value")],
     prevent_initial_call=True
 )
-def calculate_tapping_stats(sim_data, auto_run_data, is_tapping, max_energy, tap_speed, gold_per_tap, game_duration):
+def calculate_tapping_stats(sim_data, auto_run_data, is_tapping, max_energy, tap_speed, tap_coef, game_duration):
     """
     Расчет статистики тапания на основе данных симуляции.
     
@@ -35,7 +35,7 @@ def calculate_tapping_stats(sim_data, auto_run_data, is_tapping, max_energy, tap
         is_tapping: Флаг активности тапания
         max_energy: Максимальный запас энергии
         tap_speed: Скорость тапания (тапов в секунду)
-        gold_per_tap: Золото за 1 тап
+        tap_coef: Множитель золота за тап (уровень персонажа * tap_coef)
         game_duration: Длительность игровой сессии в минутах
         
     Returns:
@@ -58,23 +58,47 @@ def calculate_tapping_stats(sim_data, auto_run_data, is_tapping, max_energy, tap
         is_tapping=is_tapping_active,
         max_energy_capacity=max_energy,
         tap_speed=tap_speed,
-        gold_per_tap=gold_per_tap
+        tap_coef=tap_coef
     )
     
     # Если тапание отключено, возвращаем пустые данные
     if not is_tapping_active:
         return [{"is_tapping": False, "days": [], "stats": {}}]
     
-    # Извлекаем времена сессий из истории
+    # Извлекаем времена сессий и уровни пользователя из истории
     session_times = []
+    user_levels_data = {}
     
     for state in history:
-        if "timestamp" in state:
-            session_times.append(state["timestamp"])
+        if "timestamp" in state and "balance" in state:
+            timestamp = state["timestamp"]
+            session_times.append(timestamp)
+            
+            # Сохраняем уровень пользователя для каждой сессии
+            user_level = state["balance"].get("user_level", 1)
+            day = timestamp // 86400  # Номер дня (начиная с 0)
+            user_levels_data[day] = user_level
     
-    # Создаем движок тапания и запускаем симуляцию
+    # Если нет данных сессий, возвращаем пустые данные
+    if not session_times:
+        return [{"is_tapping": False, "days": [], "stats": {}}]
+    
+    # Получаем начальный уровень пользователя
+    base_user_level = user_levels_data.get(0, 1)  # Уровень в первый день, если есть
+    
+    # Отладочный вывод информации о уровнях пользователя
+    print("DEBUG: User levels by day:")
+    for day, level in sorted(user_levels_data.items()):
+        print(f"  Day {day+1}: User level {level}")
+    
+    # Создаем движок тапания и запускаем симуляцию с передачей уровней пользователя по дням
     tapping_engine = TappingEngine(tapping_config)
-    days_data = tapping_engine.simulate_sessions(session_times, game_duration)
+    days_data = tapping_engine.simulate_sessions(
+        session_times, 
+        game_duration, 
+        user_level=base_user_level,
+        user_levels_by_day=user_levels_data
+    )
     
     # Преобразуем данные дней в формат для хранилища
     days_json = []
@@ -94,7 +118,8 @@ def calculate_tapping_stats(sim_data, auto_run_data, is_tapping, max_energy, tap
                 "energy_used": session.energy_used,
                 "taps_count": session.taps_count,
                 "gold_earned": session.gold_earned,
-                "energy_history": session.energy_history
+                "energy_history": session.energy_history,
+                "user_level": session.user_level
             }
             day_dict["sessions"].append(session_dict)
             
@@ -121,7 +146,7 @@ def calculate_tapping_stats(sim_data, auto_run_data, is_tapping, max_energy, tap
         "config": {
             "max_energy_capacity": max_energy,
             "tap_speed": tap_speed,
-            "gold_per_tap": gold_per_tap
+            "tap_coef": tap_coef
         }
     }
     
@@ -493,12 +518,23 @@ def update_tapping_stats_table(tapping_data):
         total_energy = day["total_energy"]
         total_gold = day["total_gold"]
         
-        # Форматируем числа
+        # Определяем уровень пользователя для этого дня (берем из первой сессии дня)
+        user_level = 1
+        if day["sessions"]:
+            user_level = day["sessions"][0].get("user_level", 1)
+        
+        # Рассчитываем золото за тап
+        tap_coef = tapping_data.get("config", {}).get("tap_coef", 1.0)
+        gold_per_tap = user_level * tap_coef
+        
+        # Форматируем числа с добавлением информации об уровне и золоте за тап
         table_data.append({
             "day": f"Day {day_num}",
             "taps": f"{total_taps:,.0f}".replace(",", " "),
             "energy": f"{total_energy:,.0f}".replace(",", " "),
-            "gold": f"{total_gold:,.0f}".replace(",", " ")
+            "gold": f"{total_gold:,.0f}".replace(",", " "),
+            "level": f"{user_level}",
+            "gold_per_tap": f"{gold_per_tap:.1f}"
         })
     
     return table_data
@@ -510,7 +546,7 @@ def update_tapping_stats_table(tapping_data):
      Input("tap-speed-input", "value"),
      Input("gold-per-tap-input", "value")]
 )
-def update_tapping_config(is_tapping, max_energy, tap_speed, gold_per_tap):
+def update_tapping_config(is_tapping, max_energy, tap_speed, tap_coef):
     """
     Обновляет конфигурацию тапания на основе пользовательского ввода.
     
@@ -518,7 +554,7 @@ def update_tapping_config(is_tapping, max_energy, tap_speed, gold_per_tap):
         is_tapping: Включено ли тапание
         max_energy: Максимальный запас энергии
         tap_speed: Скорость тапания (тапов в секунду)
-        gold_per_tap: Золото за 1 тап
+        tap_coef: Множитель золота за тап (уровень персонажа * tap_coef)
         
     Returns:
         dict: Обновленная конфигурация тапания
@@ -526,21 +562,21 @@ def update_tapping_config(is_tapping, max_energy, tap_speed, gold_per_tap):
     # Конвертируем значения в числа с проверкой на None
     max_energy_value = int(max_energy) if max_energy is not None else 700
     tap_speed_value = float(tap_speed) if tap_speed is not None else 3.0
-    gold_per_tap_value = float(gold_per_tap) if gold_per_tap is not None else 10.0
+    tap_coef_value = float(tap_coef) if tap_coef is not None else 1.0
     
     # Убедимся, что значения имеют правильные типы и не None
     if max_energy_value is None or max_energy_value <= 0:
         max_energy_value = 700
     if tap_speed_value is None or tap_speed_value <= 0:
         tap_speed_value = 3.0
-    if gold_per_tap_value is None or gold_per_tap_value <= 0:
-        gold_per_tap_value = 10.0
+    if tap_coef_value is None or tap_coef_value <= 0:
+        tap_coef_value = 1.0
     
-    print(f"Debug - Tapping config updated: enabled={is_tapping}, max_energy={max_energy_value}, tap_speed={tap_speed_value}, gold_per_tap={gold_per_tap_value}")
+    print(f"Debug - Tapping config updated: enabled={is_tapping}, max_energy={max_energy_value}, tap_speed={tap_speed_value}, tap_coef={tap_coef_value}")
     
     return {
         "is_tapping": bool(is_tapping),
         "max_energy_capacity": max_energy_value,
         "tap_speed": tap_speed_value,
-        "gold_per_tap": gold_per_tap_value
+        "tap_coef": tap_coef_value
     } 
