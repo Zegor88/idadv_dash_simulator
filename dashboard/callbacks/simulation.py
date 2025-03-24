@@ -224,8 +224,8 @@ def run_simulation(n_clicks, base_gold, earn_coefficient, cooldown_multiplier,
     if n_clicks is None or n_clicks == 0:
         status_message = create_status_message(
             'info', 
-            "Симуляция не запущена. Установите параметры и нажмите кнопку 'Запустить симуляцию'.", 
-            "Данные симуляции будут отображены после запуска."
+            "Simulation is not running. Set the parameters and click the 'Run simulation' button.", 
+            "Simulation data will be displayed after running."
         )
         return status_message, no_update, no_update, {"auto_run": False}
     
@@ -255,7 +255,7 @@ def run_simulation(n_clicks, base_gold, earn_coefficient, cooldown_multiplier,
         } for level, level_config in config.user_levels.items()
     }
     
-    algorithm_name = "Последовательное улучшение" if config.simulation_algorithm == SimulationAlgorithm.SEQUENTIAL else "Первое доступное улучшение"
+    algorithm_name = "Sequential improvement" if config.simulation_algorithm == SimulationAlgorithm.SEQUENTIAL else "First available improvement"
     
     # Создаем информацию о расписании проверок
     check_times = []
@@ -270,10 +270,10 @@ def run_simulation(n_clicks, base_gold, earn_coefficient, cooldown_multiplier,
     formatted_time = format_time(result.timestamp)
     status_message = create_status_message(
         'success',
-        f"Симуляция успешно завершена за {formatted_time}!",
-        f"Алгоритм: {algorithm_name}, Базовое золото: {base_gold}, Коэффициент: {earn_coefficient}, "
-        f"Множитель кулдауна: {cooldown_multiplier}, Проверки: {check_times_str}, "
-        f"Длительность сессии: {game_duration} мин."
+        f"Simulation successfully completed in {formatted_time}!",
+        f"Algorithm: {algorithm_name}, Base gold: {base_gold}, Earn coefficient: {earn_coefficient}, "
+        f"Cooldown multiplier: {cooldown_multiplier}, Checks: {check_times_str}, "
+        f"Session duration: {game_duration} min."
     )
     
     # Переводим историю в формат JSON для хранения

@@ -55,7 +55,7 @@ def update_gold_progression(base_gold, earn_coefficient):
     # Настраиваем макет
     fig.update_layout(
         title={
-            'text': "Прогрессия заработка золота по уровням",
+            'text': "Progression of gold earnings by levels",
             'y': 0.95,
             'x': 0.5,
             'xanchor': 'center',
@@ -63,13 +63,13 @@ def update_gold_progression(base_gold, earn_coefficient):
             'font': {'size': 20}
         },
         xaxis={
-            'title': "Уровень персонажа",
+            'title': "Character level",
             'title_font': {'size': 14},
             'tickfont': {'size': 12},
             'gridcolor': 'lightgray'
         },
         yaxis={
-            'title': "Золото в секунду (Gold/sec)",
+            'title': "Gold per second (Gold/sec)",
             'title_font': {'size': 14},
             'tickfont': {'size': 12},
             'gridcolor': 'lightgray',
@@ -124,11 +124,11 @@ def update_economy_analysis(data, auto_run_data):
     if not auto_run_data or not auto_run_data.get("auto_run"):
         empty_figure = go.Figure()
         empty_figure.update_layout(
-            title="Запустите симуляцию для отображения данных",
+            title="Start simulation to display data",
             xaxis={"visible": False},
             yaxis={"visible": False},
             annotations=[{
-                "text": "Нет данных. Нажмите кнопку 'Запустить симуляцию'",
+                "text": "No data. Click 'Start simulation' button",
                 "xref": "paper",
                 "yref": "paper",
                 "showarrow": False,
@@ -140,11 +140,11 @@ def update_economy_analysis(data, auto_run_data):
     if data is None or "history" not in data:
         empty_figure = go.Figure()
         empty_figure.update_layout(
-            title="Нет данных для отображения",
+            title="No data to display",
             xaxis={"visible": False},
             yaxis={"visible": False},
             annotations=[{
-                "text": "История симуляции пуста",
+                "text": "Simulation history is empty",
                 "xref": "paper",
                 "yref": "paper",
                 "showarrow": False,
@@ -161,8 +161,8 @@ def update_economy_analysis(data, auto_run_data):
     fig = create_subplot_figure(
         rows=2, cols=1,
         subplot_titles=(
-            "Баланс экономики персонажа",
-            "Доходы и расходы по дням"
+            "Economy balance",
+            "Income and expenses by day"
         ),
         vertical_spacing=0.2,
         height=800,
@@ -222,13 +222,13 @@ def update_economy_analysis(data, auto_run_data):
         
         # Настраиваем оси для первого графика
         fig.update_xaxes(
-            title_text="День игры",
+            title_text="Day of game",
             gridcolor='lightgray',
             showgrid=True,
             row=1, col=1
         )
         fig.update_yaxes(
-            title_text="Баланс золота",
+            title_text="Gold balance",
             gridcolor='lightgray',
             showgrid=True,
             tickformat=",.0f",
@@ -306,14 +306,14 @@ def update_economy_analysis(data, auto_run_data):
     
     # Настраиваем оси для второго графика
     fig.update_xaxes(
-        title_text="День игры",
+        title_text="Day of game",
         gridcolor='lightgray',
         showgrid=True,
         dtick=1,  # Шаг сетки в 1 день
         row=2, col=1
     )
     fig.update_yaxes(
-        title_text="Золото",
+        title_text="Gold",
         gridcolor='lightgray',
         showgrid=True,
         tickformat=",.0f",
@@ -358,15 +358,15 @@ def update_economy_metrics(data, auto_run_data):
     """
     # Проверяем, была ли запущена симуляция
     if not auto_run_data or not auto_run_data.get("auto_run"):
-        return html.Div("Запустите симуляцию для отображения данных", 
+        return html.Div("Start simulation to display data", 
                         style={"textAlign": "center", "padding": "20px"})
 
     if data is None or "history" not in data:
-        return html.Div("Нет данных", style={"textAlign": "center", "padding": "20px"})
+        return html.Div("No data", style={"textAlign": "center", "padding": "20px"})
     
     history = data["history"]
     if not history:
-        return html.Div("История симуляции пуста", style={"textAlign": "center", "padding": "20px"})
+        return html.Div("Simulation history is empty", style={"textAlign": "center", "padding": "20px"})
     
     # Собираем данные об экономике
     total_income = 0
@@ -390,12 +390,12 @@ def update_economy_metrics(data, auto_run_data):
     return html.Div([
         html.Div([
             html.H3(f"{total_income:,.0f}"),
-            html.P("Всего заработано")
+            html.P("Total earned")
         ], style=STYLE_METRICS_BOX),
         
         html.Div([
             html.H3(f"{total_expenses:,.0f}"),
-            html.P("Всего потрачено")
+            html.P("Total spent")
         ], style=STYLE_METRICS_BOX),
         
     ], style=STYLE_FLEX_ROW)
@@ -425,7 +425,7 @@ def update_upgrades_history(data, auto_run_data):
             {"name": "День", "id": "День"},
             {"name": "Информация", "id": "Информация"}
         ]
-        empty_data = [{"День": "", "Информация": "Запустите симуляцию для отображения данных"}]
+        empty_data = [{"День": "", "Информация": "Start simulation to display data"}]
         return empty_data, empty_columns
     
     if data is None or "history" not in data:
@@ -452,9 +452,9 @@ def update_upgrades_history(data, auto_run_data):
             if action["type"] == "passive_income":
                 event = action["description"]
             elif action["type"] == "location_upgrade":
-                event = f"Улучшение локации {action['location_id']} (ур.{action['new_level']})"
+                event = f"Location upgrade {action['location_id']} (lvl.{action['new_level']})"
             elif action["type"] == "level_up":
-                event = f"Повышение уровня до {action['new_level']}"
+                event = f"Level up to {action['new_level']}"
             else:
                 continue
             

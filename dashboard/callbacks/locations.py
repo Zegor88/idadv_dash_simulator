@@ -33,11 +33,11 @@ def update_locations_analysis(data, auto_run_data):
     if not auto_run_data or not auto_run_data.get("auto_run"):
         empty_figure = go.Figure()
         empty_figure.update_layout(
-            title="Запустите симуляцию для отображения данных",
+            title="Run simulation to display data",
             xaxis={"visible": False},
             yaxis={"visible": False},
             annotations=[{
-                "text": "Нет данных. Нажмите кнопку 'Запустить симуляцию'",
+                "text": "No data. Click 'Run simulation'",
                 "xref": "paper",
                 "yref": "paper",
                 "showarrow": False,
@@ -90,7 +90,7 @@ def update_locations_analysis(data, auto_run_data):
         # Создаем пустой график
         fig = go.Figure()
         fig.update_layout(
-            title="Нет данных об улучшениях локаций",
+            title="No data about location upgrades",
             height=600
         )
         return fig
@@ -99,8 +99,8 @@ def update_locations_analysis(data, auto_run_data):
     fig = create_subplot_figure(
         rows=2, cols=1,
         subplot_titles=(
-            "Прогресс улучшения локаций во времени",
-            "Влияние Cooldown на прогресс"
+            "Location upgrades progress over time",
+            "Impact of Cooldown on progress"
         ),
         vertical_spacing=0.15,
         height=800,
@@ -132,12 +132,12 @@ def update_locations_analysis(data, auto_run_data):
             go.Scatter(
                 x=data["days"],
                 y=data["levels"],
-                name=f"Локация {loc_id}",
+                name=f"Location {loc_id}",
                 mode="lines+markers",
                 line=dict(width=2, color=color),
                 marker=dict(size=8, color=color),
-                hovertemplate="День: %{x:.1f}<br>Уровень: %{y}<extra>Локация %{customdata}</extra>",
-                legendgroup=f"Локация {loc_id}",
+                hovertemplate="Day: %{x:.1f}<br>Level: %{y}<extra>Location %{customdata}</extra>",
+                legendgroup=f"Location {loc_id}",
                 customdata=[loc_id] * len(data["days"])
             ),
             row=1, col=1
@@ -172,12 +172,12 @@ def update_locations_analysis(data, auto_run_data):
                 go.Scatter(
                     x=data["levels"],
                     y=data["upgrade_intervals"],
-                    name=f"Локация {loc_id}",
+                    name=f"Location {loc_id}",
                     mode="lines+markers",
                     line=dict(width=2, color=color),
                     marker=dict(size=8, color=color),
-                    hovertemplate="Уровень: %{x}<br>Интервал: %{y:.1f} часов<extra>Локация %{customdata}</extra>",
-                    legendgroup=f"Локация {loc_id}",
+                    hovertemplate="Level: %{x}<br>Interval: %{y:.1f} hours<extra>Location %{customdata}</extra>",
+                    legendgroup=f"Location {loc_id}",
                     showlegend=False,  # Не показываем в легенде, так как уже есть в первом графике
                     customdata=[loc_id] * len(data["upgrade_intervals"])
                 ),
@@ -186,26 +186,26 @@ def update_locations_analysis(data, auto_run_data):
     
     # Обновляем оси
     fig.update_xaxes(
-        title_text="День игры",
+        title_text="Game day",
         gridcolor='lightgray',
         showgrid=True,
         row=1, col=1
     )
     fig.update_yaxes(
-        title_text="Уровень локации",
+        title_text="Location level",
         gridcolor='lightgray',
         showgrid=True,
         row=1, col=1
     )
     
     fig.update_xaxes(
-        title_text="Уровень локации",
+        title_text="Location level",
         gridcolor='lightgray',
         showgrid=True,
         row=2, col=1
     )
     fig.update_yaxes(
-        title_text="Интервал до следующего улучшения (часы)",
+        title_text="Interval to the next upgrade (hours)",
         gridcolor='lightgray',
         showgrid=True,
         row=2, col=1
@@ -250,10 +250,10 @@ def update_progress_details(data, auto_run_data):
     # Проверяем, была ли запущена симуляция
     if not auto_run_data or not auto_run_data.get("auto_run"):
         empty_columns = [
-            {"name": "День", "id": "День"},
-            {"name": "Информация", "id": "Информация"}
+            {"name": "Day", "id": "Day"},
+            {"name": "Information", "id": "Information"}
         ]
-        empty_data = [{"День": "", "Информация": "Запустите симуляцию для отображения данных"}]
+        empty_data = [{"Day": "", "Information": "Run simulation to display data"}]
         return empty_data, empty_columns
     
     if data is None or "history" not in data:
@@ -270,30 +270,30 @@ def update_progress_details(data, auto_run_data):
         day = state["timestamp"] // 86400
         time = state["timestamp"] % 86400
         # Пропускаем промежуточные состояния в тот же день
-        if table_data and table_data[-1]["День"] == day:
+        if table_data and table_data[-1]["Day"] == day:
             continue
         
         table_data.append({
-            "День": day,
-            "Время": f"{time // 3600:02d}:{time % 3600 // 60:02d}:{time % 60:02d}",
-            "Золото": state["balance"]["gold"],
+            "Day": day,
+            "Time": f"{time // 3600:02d}:{time % 3600 // 60:02d}:{time % 60:02d}",
+            "Gold": state["balance"]["gold"],
             "XP": state["balance"]["xp"],
-            "Ключи": state["balance"]["keys"],
-            "Уровень": state["balance"]["user_level"],
-            "Доход (gold/sec)": state["balance"]["earn_per_sec"],
-            "Доход (gold/день)": state["balance"]["earn_per_sec"] * 86400,
+            "Keys": state["balance"]["keys"],
+            "Level": state["balance"]["user_level"],
+            "Earnings (gold/sec)": state["balance"]["earn_per_sec"],
+            "Earnings (gold/day)": state["balance"]["earn_per_sec"] * 86400,
         })
     
     # Определяем столбцы
     columns = [
-        {"name": "День", "id": "День"},
-        {"name": "Время", "id": "Время"},
-        {"name": "Золото", "id": "Золото", "type": "numeric", "format": {"specifier": ",.2f"}},
+        {"name": "Day", "id": "Day"},
+        {"name": "Time", "id": "Time"},
+        {"name": "Gold", "id": "Gold", "type": "numeric", "format": {"specifier": ",.2f"}},
         {"name": "XP", "id": "XP", "type": "numeric", "format": {"specifier": ",.0f"}},
-        {"name": "Ключи", "id": "Ключи"},
-        {"name": "Уровень", "id": "Уровень"},
-        {"name": "Доход (gold/sec)", "id": "Доход (gold/sec)", "type": "numeric", "format": {"specifier": ",.4f"}},
-        {"name": "Доход (gold/день)", "id": "Доход (gold/день)", "type": "numeric", "format": {"specifier": ",.2f"}},
+        {"name": "Keys", "id": "Keys"},
+        {"name": "Level", "id": "Level"},
+        {"name": "Earnings (gold/sec)", "id": "Earnings (gold/sec)", "type": "numeric", "format": {"specifier": ",.4f"}},
+        {"name": "Earnings (gold/day)", "id": "Earnings (gold/day)", "type": "numeric", "format": {"specifier": ",.2f"}},
     ]
     
     return table_data, columns
@@ -319,10 +319,10 @@ def update_location_history(data, auto_run_data):
     # Проверяем, была ли запущена симуляция
     if not auto_run_data or not auto_run_data.get("auto_run"):
         empty_columns = [
-            {"name": "День", "id": "День"},
-            {"name": "Информация", "id": "Информация"}
+            {"name": "Day", "id": "Day"},
+            {"name": "Information", "id": "Information"}
         ]
-        empty_data = [{"День": "", "Информация": "Запустите симуляцию для отображения данных"}]
+        empty_data = [{"Day": "", "Information": "Run simulation to display data"}]
         return empty_data, empty_columns
     
     if data is None or "history" not in data:
@@ -353,57 +353,57 @@ def update_location_history(data, auto_run_data):
         
         # Данные для отображения (отформатированные)
         table_data.append({
-            "День": day + 1,  # День начинается с 1
-            "Время": f"{hours:02d}:{minutes:02d}:{seconds:02d}",
-            "Локация": f"Локация {upgrade['location_id']}",
-            "Новый уровень": upgrade["new_level"],
-            "Золото ДО": f"{upgrade['gold_before']:,.0f}",
-            "Стоимость": f"{-upgrade['gold_change']:,.0f}",  # Стоимость - это отрицательное изменение золота
-            "Баланс золота": f"{upgrade['gold_after']:,.0f}",
-            "XP ДО": f"{upgrade['xp_before']:,.0f}",
-            "Награда XP": f"{upgrade['xp_change']:,.0f}",
-            "Баланс XP": f"{upgrade['xp_after']:,.0f}",
-            "Ключи ДО": f"{upgrade['keys_before']:,.0f}",
-            "Награда Ключи": f"{upgrade['keys_change']:,.0f}",
-            "Баланс Ключи": f"{upgrade['keys_after']:,.0f}"
+            "Day": day + 1,  # День начинается с 1
+            "Time": f"{hours:02d}:{minutes:02d}:{seconds:02d}",
+            "Location": f"Location {upgrade['location_id']}",
+            "New level": upgrade["new_level"],
+            "Gold before": f"{upgrade['gold_before']:,.0f}",
+            "Cost": f"{-upgrade['gold_change']:,.0f}",  # Стоимость - это отрицательное изменение золота
+            "Gold balance": f"{upgrade['gold_after']:,.0f}",
+            "XP before": f"{upgrade['xp_before']:,.0f}",
+            "XP reward": f"{upgrade['xp_change']:,.0f}",
+            "XP balance": f"{upgrade['xp_after']:,.0f}",
+            "Keys before": f"{upgrade['keys_before']:,.0f}",
+            "Keys reward": f"{upgrade['keys_change']:,.0f}",
+            "Keys balance": f"{upgrade['keys_after']:,.0f}"
         })
         
         # Данные для экспорта CSV (численные значения)
         export_data.append({
-            "День": day + 1,  # День начинается с 1
-            "Время": f"{hours:02d}:{minutes:02d}:{seconds:02d}",
-            "Локация": f"Локация {upgrade['location_id']}",
-            "Новый уровень": upgrade["new_level"],
-            "Золото ДО": upgrade['gold_before'],
-            "Стоимость": -upgrade['gold_change'],  # Стоимость - это отрицательное изменение золота
-            "Баланс золота": upgrade['gold_after'],
-            "XP ДО": upgrade['xp_before'],
-            "Награда XP": upgrade['xp_change'],
-            "Баланс XP": upgrade['xp_after'],
-            "Ключи ДО": upgrade['keys_before'],
-            "Награда Ключи": upgrade['keys_change'],
-            "Баланс Ключи": upgrade['keys_after']
+            "Day": day + 1,  # День начинается с 1
+            "Time": f"{hours:02d}:{minutes:02d}:{seconds:02d}",
+            "Location": f"Location {upgrade['location_id']}",
+            "New level": upgrade["new_level"],
+            "Gold before": upgrade['gold_before'],
+            "Cost": -upgrade['gold_change'],  # Стоимость - это отрицательное изменение золота
+            "Gold balance": upgrade['gold_after'],
+            "XP before": upgrade['xp_before'],
+            "XP reward": upgrade['xp_change'],
+            "XP balance": upgrade['xp_after'],
+            "Keys before": upgrade['keys_before'],
+            "Keys reward": upgrade['keys_change'],
+            "Keys balance": upgrade['keys_after']
         })
     
     # Сортируем по дню и времени
-    table_data = sorted(table_data, key=lambda x: (x["День"], x["Время"]))
-    export_data = sorted(export_data, key=lambda x: (x["День"], x["Время"]))
+    table_data = sorted(table_data, key=lambda x: (x["Day"], x["Time"]))
+    export_data = sorted(export_data, key=lambda x: (x["Day"], x["Time"]))
     
     # Определяем колонки
     columns = [
-        {"name": "День", "id": "День", "type": "numeric"},
-        {"name": "Время", "id": "Время"},
-        {"name": "Локация", "id": "Локация"},
-        {"name": "Новый уровень", "id": "Новый уровень", "type": "numeric"},
-        {"name": "Золото ДО", "id": "Золото ДО"},
-        {"name": "Стоимость", "id": "Стоимость"},
-        {"name": "Баланс золота", "id": "Баланс золота"},
-        {"name": "XP ДО", "id": "XP ДО"},
-        {"name": "Награда XP", "id": "Награда XP"},
-        {"name": "Баланс XP", "id": "Баланс XP"},
-        {"name": "Ключи ДО", "id": "Ключи ДО"},
-        {"name": "Награда Ключи", "id": "Награда Ключи"},
-        {"name": "Баланс Ключи", "id": "Баланс Ключи"}
+        {"name": "Day", "id": "Day", "type": "numeric"},
+        {"name": "Time", "id": "Time"},
+        {"name": "Location", "id": "Location"},
+        {"name": "New level", "id": "New level", "type": "numeric"},
+        {"name": "Gold before", "id": "Gold before"},
+        {"name": "Cost", "id": "Cost"},
+        {"name": "Gold balance", "id": "Gold balance"},
+        {"name": "XP before", "id": "XP before"},
+        {"name": "XP reward", "id": "XP reward"},
+        {"name": "XP balance", "id": "XP balance"},
+        {"name": "Keys before", "id": "Keys before"},
+        {"name": "Keys reward", "id": "Keys reward"},
+        {"name": "Keys balance", "id": "Keys balance"}
     ]
     
     # Экспортируем таблицу в CSV (используем данные с числовыми значениями)
@@ -432,10 +432,10 @@ def update_locations_parameters(data, auto_run_data):
     # Проверяем, была ли запущена симуляция
     if not auto_run_data or not auto_run_data.get("auto_run"):
         empty_columns = [
-            {"name": "Локация", "id": "Локация"},
-            {"name": "Информация", "id": "Информация"}
+            {"name": "Location", "id": "Location"},
+            {"name": "Information", "id": "Information"}
         ]
-        empty_data = [{"Локация": "", "Информация": "Запустите симуляцию для отображения данных"}]
+        empty_data = [{"Location": "", "Information": "Run simulation to display data"}]
         return empty_data, empty_columns
     
     if data is None or "locations" not in data:
@@ -491,16 +491,16 @@ def update_locations_cost_table(data, auto_run_data):
             max_level = max(max_level, max(int(level) for level in loc_data["levels"].keys()))
     
     # Создаем столбцы
-    columns = [{"name": "Локация", "id": "location_id"}]
+    columns = [{"name": "Location", "id": "location_id"}]
     for level in range(1, max_level + 1):
-        columns.append({"name": f"Уровень {level}", "id": f"level_{level}"})
+        columns.append({"name": f"Level {level}", "id": f"level_{level}"})
     
     # Создаем строки данных и отслеживаем редкость локаций
     table_data = []
     location_rarity = {}  # Словарь для хранения редкости каждой локации
     
     for loc_id, loc_data in sorted(locations.items(), key=lambda x: int(x[0])):
-        row = {"location_id": f"Локация {loc_id}"}
+        row = {"location_id": f"Location {loc_id}"}
         
         # Запоминаем редкость локации
         if "rarity" in loc_data:
@@ -530,7 +530,7 @@ def update_locations_cost_table(data, auto_run_data):
         
         # Добавляем условный стиль для всех ячеек в строке этой локации
         style_data_conditional.append({
-            "if": {"filter_query": f"{{location_id}} = \"Локация {loc_id}\""},
+            "if": {"filter_query": f"{{location_id}} = \"Location {loc_id}\""},
             "backgroundColor": color
         })
     

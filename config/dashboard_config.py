@@ -4,7 +4,7 @@
 """
 
 # Общие настройки
-APP_TITLE = "Анализ игровой механики Indonesian Adventure"
+APP_TITLE = "Indonesian Adventure Game Mechanics Analysis"
 ASSETS_FOLDER = 'assets'
 DEBUG_MODE = True
 PORT = 8050

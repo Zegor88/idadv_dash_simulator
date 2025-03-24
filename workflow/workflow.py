@@ -100,14 +100,14 @@ class Workflow:
         
         if not current_location:
             # Все локации улучшены до максимума
-            stop_reason = f"Локация {max_location_id} - получена, достигнут лимит по локациям"
+            stop_reason = f"Location {max_location_id} - received, reached the limit of locations"
         elif next_location:
             # Есть следующая локация, но не хватает уровня
-            stop_reason = (f"Локация {current_location[0]}, Текущий уровень {self.balance.user_level}, "
-                         f"для открытия локации {next_location[0]} требуется уровень {next_location[1].min_character_level}. "
-                         f"Симуляция остановлена")
+            stop_reason = (f"Location {current_location[0]}, Current level {self.balance.user_level}, "
+                         f"for opening location {next_location[0]} requires level {next_location[1].min_character_level}. "
+                         f"Simulation stopped")
         else:
-            stop_reason = "Симуляция остановлена"
+            stop_reason = "Simulation stopped"
         
         logger.info(f"Finished simulation.\nTime passed: {self._timestamp_to_human_readable(timestamp)}\nBalances:\n{self.balance}")
         logger.info(f"Stop reason: {stop_reason}")
@@ -139,8 +139,8 @@ class Workflow:
         # Check the game on specified timestamps (5 times per day with 8-hour sleep interval)
         if t % 86400 in self.check_schedule:
             game_time = self._format_game_time(t)
-            logger.info(f"=== {game_time} === Игрок зашел в игру ===")
-            logger.info(f"{game_time}: Текущий заработок: {self.balance.earn_per_sec:.2f} золота/сек")
+            logger.info(f"=== {game_time} === Player logged in ===")
+            logger.info(f"{game_time}: Current earnings: {self.balance.earn_per_sec:.2f} gold/sec")
             
             # Получаем текущее состояние из истории
             current_history = history[-1] if history else None
@@ -174,10 +174,10 @@ class Workflow:
                 self.balance.gold += passive_income
                 
                 logger.info(
-                    f"{game_time}: Начислен доход за {time_passed} сек:\n"
-                    f"  - Старый баланс: {old_balance:.2f} золота\n"
-                    f"  - Доход: {passive_income:.2f} золота\n"
-                    f"  - Новый баланс: {self.balance.gold:.2f} золота"
+                    f"{game_time}: Earned income for {time_passed} sec:\n"
+                    f"  - Old balance: {old_balance:.2f} gold\n"
+                    f"  - Income: {passive_income:.2f} gold\n"
+                    f"  - New balance: {self.balance.gold:.2f} gold"
                 )
                 
                 # Записываем действие начисления дохода
@@ -185,7 +185,7 @@ class Workflow:
                     action = {
                         "type": "passive_income",
                         "timestamp": t,
-                        "description": f"Пассивный доход за {time_passed} сек",
+                        "description": f"Passive income for {time_passed} sec",
                         "gold_before": old_balance,
                         "gold_change": passive_income,
                         "gold_after": self.balance.gold,
@@ -198,12 +198,12 @@ class Workflow:
                     }
                     current_history["actions"].append(action)
             elif is_first_login:
-                logger.info(f"{game_time}: Первый вход в игру, пассивный доход не начисляется")
+                logger.info(f"{game_time}: First login, passive income not earned")
             
             # Определяем конец игровой сессии
             session_end = t + self.economy.game_duration
             game_time = self._format_game_time(t)
-            logger.info(f"{game_time}: Длительность сессии: {self.economy.game_duration} сек (до {self._format_game_time(session_end)})")
+            logger.info(f"{game_time}: Session duration: {self.economy.game_duration} sec (until {self._format_game_time(session_end)})")
             
             # Step 1. Try to upgrade locations while session is active
             while t < session_end:  # Продолжаем цикл пока не истечет время сессии
@@ -217,7 +217,7 @@ class Workflow:
                                           if loc.available and loc.cooldown_until > t and loc.cooldown_until < session_end}
                     
                     if not locations_in_cooldown:
-                        logger.info(f"{game_time}: Нет локаций, которые станут доступны в течение этой сессии")
+                        logger.info(f"{game_time}: No locations that will be available in this session")
                         break  # Выходим из цикла, если нет локаций, которые станут доступны в рамках сессии
                     
                     # Находим ближайшее время окончания кулдауна
@@ -228,7 +228,7 @@ class Workflow:
                     t = next_available_time
                     game_time = self._format_game_time(t)
                     next_available = self._format_game_time(next_available_time)
-                    logger.info(f"{game_time}: Ожидание окончания кулдауна ({t - old_t} сек), следующее действие будет в {next_available}")
+                    logger.info(f"{game_time}: Waiting for cooldown to end ({t - old_t} sec), next action will be in {next_available}")
                     
                     # После перемотки продолжаем цикл с новой проверкой доступных локаций
                     continue
@@ -273,10 +273,10 @@ class Workflow:
                         
                         # Upgrade location
                         logger.info(
-                            f"{game_time}: Улучшение локации {index} "
-                            f"(уровень {location.current_level + 1}), "
-                            f"стоимость: {cost:.2f} золота, "
-                            f"cooldown: {self.cooldowns[location.current_level + 1]} сек"
+                            f"{game_time}: Location upgrade {index} "
+                            f"(level {location.current_level + 1}), "
+                            f"cost: {cost:.2f} gold, "
+                            f"cooldown: {self.cooldowns[location.current_level + 1]} sec"
                         )
                         
                         reward_xp = location.get_upgrade_xp_reward()
@@ -297,7 +297,7 @@ class Workflow:
                             action = {
                                 "type": "location_upgrade",
                                 "timestamp": t,
-                                "description": f"Улучшение локации {index} (уровень {location.current_level + 1})",
+                                "description": f"Location upgrade {index} (level {location.current_level + 1})",
                                 "location_id": index,
                                 "new_level": location.current_level + 1,
                                 "gold_before": gold_before,
@@ -324,7 +324,7 @@ class Workflow:
                         # If this was the last upgrade, deactivate location
                         if location.current_level >= max(location.levels.keys()):
                             location.available = False
-                            logger.info(f"{game_time}: Локация {index} улучшена до максимального уровня")
+                            logger.info(f"{game_time}: Location {index} upgraded to the maximum level")
                         
                         # Set the cooldown
                         location.cooldown_until = t + cooldown
@@ -333,10 +333,10 @@ class Workflow:
                         next_upgrade_time = t + cooldown
                         if next_upgrade_time < session_end:
                             next_available = self._format_game_time(next_upgrade_time)
-                            logger.info(f"{game_time}: Кулдаун: {cooldown} секунд. Следующее улучшение локации {index} будет доступно в {next_available} (в течение текущей сессии)")
+                            logger.info(f"{game_time}: Cooldown: {cooldown} sec. Next location upgrade {index} will be available in {next_available} (within the current session)")
                         else:
                             next_available = self._format_game_time(next_upgrade_time)
-                            logger.info(f"{game_time}: Кулдаун: {cooldown} секунд. Следующее улучшение локации {index} будет доступно в {next_available} (после окончания текущей сессии)")
+                            logger.info(f"{game_time}: Cooldown: {cooldown} sec. Next location upgrade {index} will be available in {next_available} (after the current session)")
                         
                         # Сразу проверяем возможность повышения уровня персонажа
                         self._try_upgrade_character(t, current_history)
@@ -351,7 +351,7 @@ class Workflow:
                     # Если у пользователя есть деньги, но нет доступных локаций для улучшения,
                     # значит есть какие-то ограничения (например, предыдущие локации не максимальны)
                     game_time = self._format_game_time(t)
-                    logger.info(f"{game_time}: Нет доступных локаций для улучшения в данный момент")
+                    logger.info(f"{game_time}: No locations available for upgrade at the moment")
                     
                     # Проверяем, есть ли локации в кулдауне, которые могут стать доступными в рамках сессии
                     locations_in_cooldown = {idx: loc for idx, loc in self.locations.items() 
@@ -359,7 +359,7 @@ class Workflow:
                     
                     if not locations_in_cooldown:
                         # Если нет локаций, которые могут стать доступными до конца сессии, выходим
-                        logger.info(f"{game_time}: Больше улучшений в этой сессии не будет")
+                        logger.info(f"{game_time}: No more upgrades in this session")
                         break
                     
                     # Находим ближайшее время окончания кулдауна
@@ -370,7 +370,7 @@ class Workflow:
                     t = next_available_time
                     game_time = self._format_game_time(t)
                     next_available = self._format_game_time(next_available_time)
-                    logger.info(f"{game_time}: Ожидание окончания кулдауна ({t - old_t} сек), следующее действие будет в {next_available}")
+                    logger.info(f"{game_time}: Waiting for cooldown to end ({t - old_t} sec), next action will be in {next_available}")
                     
                     # После перемотки продолжаем цикл без увеличения времени
                     continue
@@ -378,8 +378,8 @@ class Workflow:
             game_time = self._format_game_time(t)
             remaining_time = session_end - t
             if remaining_time > 0:
-                logger.info(f"{game_time}: Сессия завершена раньше (осталось {remaining_time} сек)")
-            logger.info(f"=== {game_time} === Игрок завершил сессию ===\n")
+                logger.info(f"{game_time}: Session ended earlier (remaining {remaining_time} sec)")
+            logger.info(f"=== {game_time} === Player finished the session ===\n")
     
     def _try_upgrade_character(self, t: int, current_history: Dict = None) -> None:
         """
@@ -401,8 +401,8 @@ class Workflow:
                 keys_before = self.balance.keys
                 
                 logger.info(
-                    f"{game_time}: Повышение уровня персонажа до {self.balance.user_level + 1}. "
-                    f"Новый заработок: {self.user_levels[self.balance.user_level + 1].gold_per_sec:.2f}/сек"
+                    f"{game_time}: Level up to {self.balance.user_level + 1}. "
+                    f"New earnings: {self.user_levels[self.balance.user_level + 1].gold_per_sec:.2f}/sec"
                 )
                 
                 self.balance.user_level += 1
@@ -415,7 +415,7 @@ class Workflow:
                     action = {
                         "type": "level_up",
                         "timestamp": t,
-                        "description": f"Повышение уровня до {self.balance.user_level}",
+                        "description": f"Level up to {self.balance.user_level}",
                         "old_level": self.balance.user_level - 1,
                         "new_level": self.balance.user_level,
                         "gold_before": gold_before,
@@ -432,7 +432,7 @@ class Workflow:
                     current_history["actions"].append(action)
                 
                 logger.info(
-                    f"{game_time}: Получено {keys_reward} ключей за новый уровень"
+                    f"{game_time}: Earned {keys_reward} keys for the new level"
                 )
                 
                 if self.balance.user_level < max(self.user_levels.keys()):

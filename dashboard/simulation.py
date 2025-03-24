@@ -94,8 +94,8 @@ def run_simulation(n_clicks, base_gold, earn_coefficient, cooldown_multiplier,
     if n_clicks is None or n_clicks == 0:
         status_message = create_status_message(
             'info', 
-            "Симуляция не запущена. Установите параметры и нажмите кнопку 'Запустить симуляцию'.", 
-            "Данные симуляции будут отображены после запуска."
+            "Simulation not started. Set parameters and click 'Run Simulation' button.", 
+            "Simulation data will be displayed after starting."
         )
         return status_message, no_update, no_update, {"auto_run": False}
     
@@ -123,8 +123,8 @@ def run_simulation(n_clicks, base_gold, earn_coefficient, cooldown_multiplier,
         result = simulator.run_simulation()
         
         # Формируем сообщение об успешной симуляции
-        completion_message = f"Симуляция завершена за {result.timestamp} секунд"
-        status_message = create_status_message("success", "Симуляция успешно выполнена", completion_message)
+        completion_message = f"Simulation completed in {result.timestamp} seconds"
+        status_message = create_status_message("success", "Simulation completed successfully", completion_message)
         
         # Получаем данные для отображения
         history_data = result.history
@@ -142,7 +142,7 @@ def run_simulation(n_clicks, base_gold, earn_coefficient, cooldown_multiplier,
         user_levels_data = {str(k): v.gold_per_sec for k, v in simulator.workflow.user_levels.items()}
         
     except Exception as e:
-        status_message = create_status_message("error", "Ошибка при выполнении симуляции", str(e))
+        status_message = create_status_message("error", "Error during simulation execution", str(e))
         return status_message, None, None, {"auto_run": False}
         
     # Данные симуляции для хранилища
@@ -314,13 +314,13 @@ def update_completion_info(data, auto_run_data):
     # Проверяем, была ли запущена симуляция
     if not data or not auto_run_data or not auto_run_data.get("auto_run"):
         await_run_message = html.Div([
-            html.H5("Данные недоступны", style={"color": "#6c757d"}),
-            html.P("Запустите симуляцию для отображения информации", style={"fontStyle": "italic"})
+            html.H5("Data not available", style={"color": "#6c757d"}),
+            html.P("Start simulation to display information", style={"fontStyle": "italic"})
         ])
         return await_run_message, await_run_message
     
     if "history" not in data or not data["history"]:
-        return "Нет данных", "Нет данных"
+        return "No data", "No data"
     
     history = data["history"]
     last_state = history[-1]
@@ -331,18 +331,18 @@ def update_completion_info(data, auto_run_data):
     hours = (timestamp % 86400) // 3600
     
     completion_info = html.Div([
-        html.H5("Общая информация:"),
-        html.P(f"Время прохождения: {days} дней, {hours} часов ({timestamp} секунд)"),
-        html.P(f"Причина остановки: {data.get('stop_reason', 'Не указана')}")
+        html.H5("General information:"),
+        html.P(f"Time passed: {days} days, {hours} hours ({timestamp} seconds)"),
+        html.P(f"Stop reason: {data.get('stop_reason', 'Not specified')}")
     ])
     
     resources_info = html.Div([
-        html.H5("Финальные ресурсы:"),
-        html.P(f"Золото: {balance['gold']:.2f}"),
-        html.P(f"Опыт: {balance['xp']}"),
-        html.P(f"Ключи: {balance['keys']}"),
-        html.P(f"Уровень: {balance['user_level']}"),
-        html.P(f"Заработок в секунду: {balance['earn_per_sec']:.2f}")
+        html.H5("Final resources:"),
+        html.P(f"Gold: {balance['gold']:.2f}"),
+        html.P(f"XP: {balance['xp']}"),
+        html.P(f"Keys: {balance['keys']}"),
+        html.P(f"Level: {balance['user_level']}"),
+        html.P(f"Earn per second: {balance['earn_per_sec']:.2f}")
     ])
     
     return completion_info, resources_info
@@ -368,12 +368,12 @@ def update_key_metrics(data, auto_run_data):
     # Проверяем, была ли запущена симуляция
     if not data or not auto_run_data or not auto_run_data.get("auto_run"):
         return html.Div([
-            html.P("Запустите симуляцию для отображения метрик", 
+            html.P("Start simulation to display metrics", 
                    style={"textAlign": "center", "color": "#6c757d", "fontStyle": "italic", "padding": "20px"})
         ])
     
     if "history" not in data or not data["history"]:
-        return "Нет данных"
+        return "No data"
     
     history = data["history"]
     
@@ -417,17 +417,17 @@ def update_key_metrics(data, auto_run_data):
     return html.Div([
         html.Div([
             html.H3(f"{location_upgrades}"),
-            html.P("Улучшений локаций")
+            html.P("Location upgrades")
         ], style=style_box),
         
         html.Div([
             html.H3(f"{total_spent:,.0f}"),
-            html.P("Потрачено золота")
+            html.P("Spent gold")
         ], style=style_box),
         
         html.Div([
             html.H3(f"{days_without_upgrades_percent:.1f}%"),
-            html.P(f"Дней без улучшений ({days_without_upgrades} из {total_days})")
+            html.P(f"Days without upgrades ({days_without_upgrades} from {total_days})")
         ], style=style_box)
     ], style={"display": "flex", "flexDirection": "row", "justifyContent": "space-around", "flexWrap": "wrap"}) 
 

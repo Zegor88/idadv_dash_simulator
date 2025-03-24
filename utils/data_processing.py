@@ -257,6 +257,13 @@ def extract_daily_events_data(history: List[Dict[str, Any]]) -> List[Dict[str, A
     # Количество входов в игру в день по расписанию
     logins_per_day = len(DEFAULT_CHECK_SCHEDULE)
     
+    # Словарь для отслеживания предыдущего баланса ресурсов по дням
+    prev_day_resources = {
+        "gold": 0,
+        "xp": 0,
+        "keys": 0
+    }
+    
     # Обработка данных по дням
     for state in history:
         # Извлекаем день из таймстампа
@@ -273,8 +280,13 @@ def extract_daily_events_data(history: List[Dict[str, Any]]) -> List[Dict[str, A
                 "upgrades_count": 0,
                 "new_locations": 0,
                 "gold": 0,
+                "gold_earned": 0,  # Сколько золота получено за день
+                "gold_spent": 0,    # Сколько золота потрачено за день
                 "xp": 0,
-                "keys": 0
+                "xp_earned": 0,     # Сколько XP получено за день
+                "keys": 0,
+                "keys_earned": 0,   # Сколько ключей получено за день
+                "keys_spent": 0     # Сколько ключей потрачено за день
             }
         
         # Добавляем ресурсы в конце дня
@@ -296,9 +308,30 @@ def extract_daily_events_data(history: List[Dict[str, Any]]) -> List[Dict[str, A
                     "upgrades_count": 0,
                     "new_locations": 0,
                     "gold": 0,
+                    "gold_earned": 0,
+                    "gold_spent": 0,
                     "xp": 0,
-                    "keys": 0
+                    "xp_earned": 0,
+                    "keys": 0,
+                    "keys_earned": 0,
+                    "keys_spent": 0
                 }
+            
+            # Учет изменений ресурсов для любого типа действия
+            if "gold_change" in action:
+                if action["gold_change"] > 0:
+                    daily_data[action_day]["gold_earned"] += action["gold_change"]
+                elif action["gold_change"] < 0:
+                    daily_data[action_day]["gold_spent"] += abs(action["gold_change"])
+                    
+            if "xp_change" in action and action["xp_change"] > 0:
+                daily_data[action_day]["xp_earned"] += action["xp_change"]
+                
+            if "keys_change" in action:
+                if action["keys_change"] > 0:
+                    daily_data[action_day]["keys_earned"] += action["keys_change"]
+                elif action["keys_change"] < 0:
+                    daily_data[action_day]["keys_spent"] += abs(action["keys_change"])
             
             # Улучшения локаций
             if action["type"] == "location_upgrade":
@@ -333,6 +366,24 @@ def extract_daily_events_data(history: List[Dict[str, Any]]) -> List[Dict[str, A
     # Добавляем диапазоны уровней
     for day, level_data in level_ups_by_day.items():
         daily_data[day]["level_range"] = (level_data["min"], level_data["max"])
+    
+    # Проверяем разницу в золоте между днями, чтобы учесть неотслеженные поступления
+    days = sorted(daily_data.keys())
+    for i in range(1, len(days)):
+        prev_day = days[i-1]
+        curr_day = days[i]
+        
+        prev_gold = daily_data[prev_day]["gold"]
+        curr_gold = daily_data[curr_day]["gold"]
+        earned = daily_data[curr_day]["gold_earned"]
+        spent = daily_data[curr_day]["gold_spent"]
+        
+        # Если получение золота не учтено, но баланс вырос больше, чем потрачено
+        expected_gold = prev_gold + earned - spent
+        if curr_gold > expected_gold:
+            # Добавляем недостающее золото к заработанному
+            additional_earned = curr_gold - expected_gold
+            daily_data[curr_day]["gold_earned"] += additional_earned
     
     # Формируем итоговый список
     result = []

@@ -152,11 +152,11 @@ def update_taps_gold_by_day(tapping_data):
     if not tapping_data or not tapping_data.get("is_tapping", False):
         empty_figure = go.Figure()
         empty_figure.update_layout(
-            title="Необходимо включить тапание в настройках",
+            title="Tapping is not activated in settings",
             xaxis={"visible": False},
             yaxis={"visible": False},
             annotations=[{
-                "text": "Нет данных. Активируйте функцию тапания в настройках и запустите симуляцию.",
+                "text": "No data. Activate the tapping function in settings and run the simulation.",
                 "xref": "paper",
                 "yref": "paper",
                 "showarrow": False,
@@ -170,7 +170,7 @@ def update_taps_gold_by_day(tapping_data):
     if not days:
         empty_figure = go.Figure()
         empty_figure.update_layout(
-            title="Нет данных о тапании",
+            title="No data about tapping",
             xaxis={"visible": False},
             yaxis={"visible": False}
         )
@@ -195,7 +195,7 @@ def update_taps_gold_by_day(tapping_data):
         go.Bar(
             x=days_numbers,
             y=taps_counts,
-            name="Количество тапов",
+            name="Taps count",
             marker_color=TAPPING_COLORS["taps"]
         ),
         secondary_y=False
@@ -206,7 +206,7 @@ def update_taps_gold_by_day(tapping_data):
         go.Scatter(
             x=days_numbers,
             y=gold_earned,
-            name="Полученное золото",
+            name="Earned gold",
             marker_color=TAPPING_COLORS["gold"],
             mode="lines+markers"
         ),
@@ -215,14 +215,14 @@ def update_taps_gold_by_day(tapping_data):
     
     # Обновляем макет
     fig.update_layout(
-        title="Тапы и золото по дням",
-        xaxis_title="День",
+        title="Taps and gold by days",
+        xaxis_title="Day",
         **TAPPING_GRAPH_LAYOUT
     )
     
     # Настраиваем оси Y
-    fig.update_yaxes(title_text="Количество тапов", secondary_y=False)
-    fig.update_yaxes(title_text="Полученное золото", secondary_y=True)
+    fig.update_yaxes(title_text="Taps count", secondary_y=False)
+    fig.update_yaxes(title_text="Earned gold", secondary_y=True)
     
     # Форматируем метрики
     formatted_total_taps = f"{total_taps:,.0f}".replace(",", " ")
@@ -268,7 +268,7 @@ def update_session_dropdown(tapping_data):
             start_time_minutes = ((session["start_time"] % 86400) % 3600) // 60
             start_time_str = f"{start_time_hours:02d}:{start_time_minutes:02d}"
             
-            label = f"День {day_num}, сессия {session_idx + 1} ({start_time_str})"
+            label = f"Day {day_num}, session {session_idx + 1} ({start_time_str})"
             value = f"{day_idx}_{session_idx}"
             
             options.append({"label": label, "value": value})
@@ -299,11 +299,11 @@ def update_energy_over_time(selected_session, tapping_data):
     if not tapping_data or not tapping_data.get("is_tapping", False) or not selected_session:
         empty_figure = go.Figure()
         empty_figure.update_layout(
-            title="Выберите сессию для анализа",
+            title="Select a session for analysis",
             xaxis={"visible": False},
             yaxis={"visible": False},
             annotations=[{
-                "text": "Нет данных. Выберите сессию для анализа.",
+                "text": "No data. Select a session for analysis.",
                 "xref": "paper",
                 "yref": "paper",
                 "showarrow": False,
@@ -345,7 +345,7 @@ def update_energy_over_time(selected_session, tapping_data):
         go.Scatter(
             x=times,
             y=energy_values,
-            name="Энергия",
+            name="Energy",
             line={"color": TAPPING_COLORS["energy"], "width": 2},
             mode="lines"
         ),
@@ -357,7 +357,7 @@ def update_energy_over_time(selected_session, tapping_data):
         go.Scatter(
             x=times,
             y=energy_values,
-            name="Энергия (область)",
+            name="Energy (area)",
             fill="tozeroy",
             fillcolor=f"rgba(76, 175, 80, 0.2)",
             line={"width": 0},
@@ -394,7 +394,7 @@ def update_energy_over_time(selected_session, tapping_data):
         go.Scatter(
             x=times,
             y=tap_values,
-            name="Количество тапов",
+            name="Taps count",
             line={"color": TAPPING_COLORS["taps"], "width": 1.5, "dash": "dot"},
             mode="lines"
         ),
@@ -420,7 +420,7 @@ def update_energy_over_time(selected_session, tapping_data):
     fig.add_annotation(
         x=min(times),
         y=max_energy,
-        text="Макс. энергия",
+        text="Max energy",
         showarrow=False,
         yshift=10,
         font=dict(size=10, color="red")
@@ -436,7 +436,7 @@ def update_energy_over_time(selected_session, tapping_data):
     fig.add_annotation(
         x=0.5,
         y=1.1,
-        text=f"Тапов: {taps_count:.0f} | Энергии: {energy_used:.0f} | Золота: {gold_earned:.0f} | Длительность: {duration_min:.1f} мин",
+        text=f"Taps: {taps_count:.0f} | Energy: {energy_used:.0f} | Gold: {gold_earned:.0f} | Duration: {duration_min:.1f} min",
         showarrow=False,
         xref="paper",
         yref="paper",
@@ -445,14 +445,14 @@ def update_energy_over_time(selected_session, tapping_data):
     
     # Обновляем макет
     fig.update_layout(
-        title="Изменение энергии и тапов во время сессии",
-        xaxis_title="Время (минуты от начала сессии)",
+        title="Energy and taps changes during the session",
+        xaxis_title="Time (minutes from the start of the session)",
         **TAPPING_GRAPH_LAYOUT
     )
     
     # Настраиваем оси Y
-    fig.update_yaxes(title_text="Энергия", secondary_y=False)
-    fig.update_yaxes(title_text="Количество тапов", secondary_y=True)
+    fig.update_yaxes(title_text="Energy", secondary_y=False)
+    fig.update_yaxes(title_text="Taps count", secondary_y=True)
     
     # Переопределяем параметры легенды
     fig.update_layout(
@@ -495,7 +495,7 @@ def update_tapping_stats_table(tapping_data):
         
         # Форматируем числа
         table_data.append({
-            "day": f"День {day_num}",
+            "day": f"Day {day_num}",
             "taps": f"{total_taps:,.0f}".replace(",", " "),
             "energy": f"{total_energy:,.0f}".replace(",", " "),
             "gold": f"{total_gold:,.0f}".replace(",", " ")

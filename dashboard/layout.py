@@ -1,5 +1,5 @@
 """
-Модуль макета дашборда Indonesian Adventure.
+Dashboard layout module for Indonesian Adventure.
 """
 
 from typing import List, Dict, Any
@@ -29,15 +29,15 @@ def create_settings_panel():
     """
     return html.Div([
         html.Div([
-            html.H3("Настройки симуляции", style={"color": "#343a40", "marginBottom": "20px"}),
+            html.H3("Simulation Settings", style={"color": "#ffffff", "marginBottom": "20px"}),
         ], style=STYLE_HEADER),
         
-        # Экономические параметры
+        # Economic parameters
         html.Div([
-            html.H4("Параметры экономики", className="settings-section-title"),
+            html.H4("Economy Parameters", className="settings-section-title"),
             
             html.Div([
-                html.Label("Базовое значение золота в секунду:", style={"display": "block", "marginBottom": "5px"}),
+                html.Label("Base gold per second:", style={"display": "block", "marginBottom": "5px"}),
                 dcc.Input(
                     id="base-gold-per-sec-input",
                     type="number",
@@ -48,25 +48,25 @@ def create_settings_panel():
             ]),
             
             html.Div([
-                html.Label("Коэффициент роста золота:", style={"display": "block", "marginBottom": "5px"}),
+                html.Label("Gold growth coefficient:", style={"display": "block", "marginBottom": "5px"}),
                 dcc.Input(
                     id="earn-coefficient-input",
                     type="number",
                     value=DEFAULT_EARN_COEFFICIENT,
                     step=0.001,
-                    style={"width": "100%", "marginBottom": "15px", "padding": "8px"}
+                    style={"width": "100%", "marginBottom": "15px", "padding": "8px", "border": "1px solid #ddd", "outline": "none"}
                 ),
             ]),
         ], className="settings-section"),
         
         html.Hr(style={"margin": "20px 0", "opacity": "0.3"}),
         
-        # Начальный баланс
+        # Starting balance
         html.Div([
-            html.H4("Стартовый баланс", className="settings-section-title"),
+            html.H4("Starting Balance", className="settings-section-title"),
             
             html.Div([
-                html.Label("Начальное количество золота:", style={"display": "block", "marginBottom": "5px"}),
+                html.Label("Initial gold amount:", style={"display": "block", "marginBottom": "5px"}),
                 dcc.Input(
                     id="starting-gold-input",
                     type="number",
@@ -78,7 +78,7 @@ def create_settings_panel():
             ]),
             
             html.Div([
-                html.Label("Начальный опыт:", style={"display": "block", "marginBottom": "5px"}),
+                html.Label("Initial experience:", style={"display": "block", "marginBottom": "5px"}),
                 dcc.Input(
                     id="starting-xp-input",
                     type="number",
@@ -90,7 +90,7 @@ def create_settings_panel():
             ]),
             
             html.Div([
-                html.Label("Начальное количество ключей:", style={"display": "block", "marginBottom": "5px"}),
+                html.Label("Initial keys:", style={"display": "block", "marginBottom": "5px"}),
                 dcc.Input(
                     id="starting-keys-input",
                     type="number",
@@ -104,17 +104,17 @@ def create_settings_panel():
         
         html.Hr(style={"margin": "20px 0", "opacity": "0.3"}),
         
-        # Параметры проверок
+        # Check parameters
         html.Div([
-            html.H4("Параметры проверок", className="settings-section-title"),
+            html.H4("Check Parameters", className="settings-section-title"),
             
             html.Div([
-                html.Label("Расписание проверок:", style={"display": "block", "marginBottom": "10px", "fontWeight": "bold"}),
+                html.Label("Check schedule:", style={"display": "block", "marginBottom": "10px", "fontWeight": "bold"}),
                 
-                # Контейнер для динамического списка времени
+                # Container for dynamic time list
                 html.Div(id="check-times-container", style={"marginBottom": "15px"}),
                 
-                # Кнопка добавления нового времени
+                # Button to add new time
                 html.Button(
                     "+", 
                     id="add-check-time-button",
@@ -132,16 +132,16 @@ def create_settings_panel():
                     }
                 ),
                 
-                # Хранилище для времен проверок
+                # Store for check times
                 dcc.Store(id="check-times-store", data={"schedule": ["08:00", "12:00", "16:00", "20:00"]}),
                 
-                # Длительность игровой сессии
+                # Game session duration
                 html.Div([
-                    html.Label("Длительность сессии в минутах:", style={"display": "block", "marginBottom": "5px", "fontWeight": "bold"}),
+                    html.Label("Session duration in minutes:", style={"display": "block", "marginBottom": "5px", "fontWeight": "bold"}),
                     dcc.Input(
                         id="game-duration-input",
                         type="number",
-                        value=15,  # Значение по умолчанию: 15 минут
+                        value=15,  # Default value: 15 minutes
                         min=1,
                         max=60,
                         step=1,
@@ -153,12 +153,12 @@ def create_settings_panel():
         
         html.Hr(style={"margin": "20px 0", "opacity": "0.3"}),
         
-        # Параметры локаций
+        # Location parameters
         html.Div([
-            html.H4("Параметры локаций", className="settings-section-title"),
+            html.H4("Location Parameters", className="settings-section-title"),
             
             html.Div([
-                html.Label("Кулдаун между улучшениями (множитель):", style={"display": "block", "marginBottom": "10px"}),
+                html.Label("Cooldown multiplier between upgrades:", style={"display": "block", "marginBottom": "10px"}),
                 dcc.Slider(
                     id="cooldown-multiplier-slider",
                     min=COOLDOWN_MULTIPLIER_MIN,
@@ -170,14 +170,14 @@ def create_settings_panel():
                 ),
             ], style={"marginBottom": "20px"}),
             
-            # Алгоритм симуляции
+            # Simulation algorithm
             html.Div([
-                html.Label("Алгоритм улучшения локаций:", style={"display": "block", "marginBottom": "10px"}),
+                html.Label("Location upgrade algorithm:", style={"display": "block", "marginBottom": "10px"}),
                 dcc.RadioItems(
                     id="simulation-algorithm-radio",
                     options=[
-                        {'label': ' Последовательное улучшение', 'value': SimulationAlgorithm.SEQUENTIAL.value},
-                        {'label': ' Первое доступное улучшение', 'value': SimulationAlgorithm.FIRST_AVAILABLE.value},
+                        {'label': ' Sequential upgrade', 'value': SimulationAlgorithm.SEQUENTIAL.value},
+                        {'label': ' First available upgrade', 'value': SimulationAlgorithm.FIRST_AVAILABLE.value},
                     ],
                     value=SimulationAlgorithm.SEQUENTIAL.value,
                     style={"marginBottom": "15px"},
@@ -185,9 +185,9 @@ def create_settings_panel():
                     labelStyle={"display": "block", "marginBottom": "10px"}
                 ),
                 html.Div([
-                    html.P("Последовательное улучшение: локации улучшаются по порядку, требуется полное улучшение предыдущих локаций.", 
+                    html.P("Sequential upgrade: locations are upgraded in order, requiring full upgrade of previous locations.", 
                            className="description-text", style={"fontSize": "12px", "color": "#666"}),
-                    html.P("Первое доступное улучшение: улучшается первая доступная локация с истекшим кулдауном.",
+                    html.P("First available upgrade: upgrades the first available location with expired cooldown.",
                            className="description-text", style={"fontSize": "12px", "color": "#666"}),
                 ], style={"marginTop": "5px"})
             ], style={"marginBottom": "20px"}),
@@ -195,23 +195,23 @@ def create_settings_panel():
         
         html.Hr(style={"margin": "20px 0", "opacity": "0.3"}),
         
-        # Параметры тапания
+        # Tapping parameters
         html.Div([
-            html.H4("Параметры тапания", className="settings-section-title"),
+            html.H4("Tapping Parameters", className="settings-section-title"),
             
-            # Включение/отключение тапания
+            # Enable/disable tapping
             html.Div([
                 html.Label(
                     html.Div([
                         dcc.Checklist(
                             id="is-tapping-checkbox",
-                            options=[{'label': ' Активировать тапание', 'value': 'is_tapping'}],
+                            options=[{'label': ' Enable tapping', 'value': 'is_tapping'}],
                             value=['is_tapping'] if DEFAULT_IS_TAPPING else [],
                             inputStyle={"marginRight": "5px"},
                             style={"fontWeight": "bold"}
                         ),
                         html.P(
-                            "При активации пользователь будет тапать во время игровых сессий, расходуя энергию и получая золото.",
+                            "When enabled, the user will tap during game sessions, spending energy and receiving gold.",
                             style={"fontSize": "12px", "color": "#666", "marginTop": "5px", "marginLeft": "25px"}
                         )
                     ]),
@@ -219,9 +219,9 @@ def create_settings_panel():
                 ),
             ]),
             
-            # Максимальный запас энергии
+            # Maximum energy
             html.Div([
-                html.Label("Максимальный запас энергии:", style={"display": "block", "marginBottom": "5px"}),
+                html.Label("Maximum energy:", style={"display": "block", "marginBottom": "5px"}),
                 dcc.Input(
                     id="max-energy-input",
                     type="number",
@@ -233,9 +233,9 @@ def create_settings_panel():
                 ),
             ]),
             
-            # Скорость тапания
+            # Tapping speed
             html.Div([
-                html.Label("Скорость тапания (тапов в секунду):", style={"display": "block", "marginBottom": "5px"}),
+                html.Label("Tapping speed (taps per second):", style={"display": "block", "marginBottom": "5px"}),
                 dcc.Input(
                     id="tap-speed-input",
                     type="number",
@@ -247,9 +247,9 @@ def create_settings_panel():
                 ),
             ]),
             
-            # Золото за тап
+            # Gold per tap
             html.Div([
-                html.Label("Золото за 1 тап:", style={"display": "block", "marginBottom": "5px"}),
+                html.Label("Gold per tap:", style={"display": "block", "marginBottom": "5px"}),
                 dcc.Input(
                     id="gold-per-tap-input",
                     type="number",
@@ -261,14 +261,14 @@ def create_settings_panel():
                 ),
             ]),
             
-            # Описание механики
+            # Mechanics description
             html.Div([
                 html.P(
-                    "Энергия расходуется по 1 ед. за 1 тап и восстанавливается со скоростью 1 ед/сек.",
+                    "Energy is spent at 1 unit per tap and regenerates at 1 unit per second.",
                     style={"fontSize": "12px", "color": "#666", "marginTop": "5px"}
                 ),
                 html.P(
-                    "Если энергия = 0, пользователь больше не тапает в рамках текущей сессии.",
+                    "If energy = 0, user stops tapping for the current session.",
                     style={"fontSize": "12px", "color": "#666", "marginTop": "5px"}
                 ),
             ], style={"backgroundColor": "#f8f9fa", "padding": "10px", "borderRadius": "5px"}),
@@ -276,7 +276,7 @@ def create_settings_panel():
         ], className="settings-section"),
         
         html.Button(
-            "Запустить симуляцию", 
+            "Run Simulation", 
             id="run-simulation-button", 
             n_clicks=0,
             style=STYLE_BUTTON
@@ -287,14 +287,14 @@ def create_settings_panel():
 
 def create_overview_tab():
     """
-    Создает вкладку с общей информацией.
+    Creates overview tab.
     
     Returns:
-        html.Div: Содержимое вкладки
+        html.Div: Tab content
     """
     return html.Div([
         html.Div([
-            html.H4("Основные показатели", className="tab-section-title"),
+            html.H4("Key Indicators", className="tab-section-title"),
             html.Div([
                 html.Div(id="completion-time", className="info-card"),
                 html.Div(id="final-resources", className="info-card"),
@@ -302,41 +302,41 @@ def create_overview_tab():
         ], className="tab-section"),
         
         html.Div([
-            html.H4("Ключевые метрики", className="tab-section-title"),
+            html.H4("Key Metrics", className="tab-section-title"),
             html.Div(id="key-metrics"),
         ], className="tab-section"),
     ])
 
 def create_progress_tab():
     """
-    Создает вкладку с прогрессом персонажа.
+    Creates character progress tab.
     
     Returns:
-        html.Div: Содержимое вкладки
+        html.Div: Tab content
     """
     return html.Div([
         html.Div([
-            html.H4("Рост уровня персонажа", className="tab-section-title"),
+            html.H4("Character Level Growth", className="tab-section-title"),
             dcc.Graph(id="user-level-progress"),
         ], className="tab-section"),
         
         html.Div([
-            html.H4("Накопление ресурсов", className="tab-section-title"),
+            html.H4("Resource Accumulation", className="tab-section-title"),
             dcc.Graph(id="resources-over-time"),
         ], className="tab-section"),
     ])
 
 def create_locations_tab():
     """
-    Создает вкладку анализа локаций.
+    Creates locations analysis tab.
     
     Returns:
-        html.Div: Контейнер с содержимым вкладки
+        html.Div: Tab container with content
     """
     return html.Div([
-        # Таблица стоимостей локаций
+        # Location costs table
         html.Div([
-            html.H4("Анализ локаций", className="tab-section-title"),
+            html.H4("Location Analysis", className="tab-section-title"),
             html.Div([
                 DataTable(
                     id="locations-cost-table",
@@ -363,10 +363,10 @@ def create_locations_tab():
                     tooltip_delay=0,
                     tooltip_duration=None
                 ),
-                # Легенда для цветов редкости
+                # Rarity color legend
                 html.Div([
                     html.Div([
-                        html.Span("Редкость локаций:", style={"marginRight": "10px", "fontWeight": "bold"}),
+                        html.Span("Location rarity:", style={"marginRight": "10px", "fontWeight": "bold"}),
                         html.Span([
                             html.Span("", style={
                                 "display": "inline-block", 
@@ -376,7 +376,7 @@ def create_locations_tab():
                                 "marginRight": "5px",
                                 "border": "1px solid #ddd"
                             }),
-                            "Обычные",
+                            "Common",
                         ], style={"marginRight": "10px"}),
                         html.Span([
                             html.Span("", style={
@@ -387,7 +387,7 @@ def create_locations_tab():
                                 "marginRight": "5px",
                                 "border": "1px solid #ddd"
                             }),
-                            "Редкие",
+                            "Rare",
                         ], style={"marginRight": "10px"}),
                         html.Span([
                             html.Span("", style={
@@ -398,22 +398,22 @@ def create_locations_tab():
                                 "marginRight": "5px",
                                 "border": "1px solid #ddd"
                             }),
-                            "Легендарные",
+                            "Legendary",
                         ]),
                     ], style={"display": "flex", "alignItems": "center", "fontSize": "12px", "color": "#666"})
                 ], style={"marginTop": "10px", "textAlign": "right"})
             ], style={"marginBottom": "30px"}),
         ], className="tab-section"),
         
-        # График анализа локаций
+        # Location progress graph
         html.Div([
-            html.H4("Прогресс локаций", className="tab-section-title"),
+            html.H4("Location Progress", className="tab-section-title"),
             dcc.Graph(id="locations-upgrades"),
         ], className="tab-section"),
         
-        # Таблица истории улучшений локаций
+        # Location upgrade history table
         html.Div([
-            html.H4("История улучшений локаций", className="tab-section-title"),
+            html.H4("Location Upgrade History", className="tab-section-title"),
             DataTable(
                 id="location-history-table",
                 style_header={
@@ -439,24 +439,24 @@ def create_locations_tab():
 
 def create_economy_tab():
     """
-    Создает вкладку экономического анализа.
+    Creates economy analysis tab.
     
     Returns:
-        html.Div: Контейнер с содержимым вкладки
+        html.Div: Tab container with content
     """
     return html.Div([
-        # 1. Базовая экономика
+        # 1. Base economy
         html.Div([
-            html.H4("Базовая экономика", className="tab-section-title"),
+            html.H4("Base Economy", className="tab-section-title"),
             dcc.Graph(id="gold-per-sec-progression"),
             DataTable(
                 id="gold-per-sec-table",
                 columns=[
-                    {"name": "Уровень", "id": "level"},
+                    {"name": "Level", "id": "level"},
                     {"name": "Gold/sec", "id": "gold_per_sec"},
                     {"name": "Gold/hour", "id": "gold_per_hour"},
                     {"name": "Gold/day", "id": "gold_per_day"},
-                    {"name": "Прирост", "id": "growth"},
+                    {"name": "Growth", "id": "growth"},
                 ],
                 style_table={"overflowX": "auto", "borderRadius": "5px", "boxShadow": "0 2px 4px rgba(0,0,0,0.05)"},
                 style_header={
@@ -473,19 +473,19 @@ def create_economy_tab():
             ),
         ], className="tab-section"),
         
-        # 2. Динамика экономики
+        # 2. Economy dynamics
         html.Div([
-            html.H4("Динамика экономики", className="tab-section-title"),
+            html.H4("Economy Dynamics", className="tab-section-title"),
             dcc.Graph(id="economy-analysis"),
             html.Div([
-                html.H5("Ключевые показатели", className="subsection-title"),
+                html.H5("Key Indicators", className="subsection-title"),
                 html.Div(id="economy-metrics", className="metrics-container"),
             ]),
         ], className="tab-section"),
         
-        # 3. Баланс золота
+        # 3. Gold balance
         html.Div([
-            html.H4("Баланс золота", className="tab-section-title"),
+            html.H4("Gold Balance", className="tab-section-title"),
             DataTable(
                 id="upgrades-history-table",
                 style_header={
@@ -505,29 +505,29 @@ def create_economy_tab():
 
 def create_pace_tab():
     """
-    Создает вкладку с анализом темпа игры.
+    Creates game pace analysis tab.
     
     Returns:
-        html.Div: Содержимое вкладки
+        html.Div: Tab content
     """
     return html.Div([
         html.Div([
-            html.H4("Анализ времени между улучшениями", className="tab-section-title"),
+            html.H4("Time Between Upgrades Analysis", className="tab-section-title"),
             dcc.Graph(id="progression-pace"),
         ], className="tab-section"),
         
         html.Div([
-            html.H4("Анализ периодов без улучшений", className="tab-section-title"),
+            html.H4("No Upgrade Periods Analysis", className="tab-section-title"),
             dcc.Graph(id="stagnation-analysis"),
         ], className="tab-section"),
         
         html.Div([
-            html.H4("Статистика прогресса", className="tab-section-title"),
+            html.H4("Progress Statistics", className="tab-section-title"),
             html.Div(id="progression-stats", className="stats-container"),
         ], className="tab-section"),
         
         html.Div([
-            html.H4("События по дням", className="tab-section-title"),
+            html.H4("Daily Events", className="tab-section-title"),
             DataTable(
                 id="daily-events-table",
                 style_table={'overflowX': 'auto'},
@@ -556,56 +556,56 @@ def create_pace_tab():
 
 def create_tapping_tab():
     """
-    Создает вкладку анализа тапания.
+    Creates tapping analysis tab.
     
     Returns:
-        html.Div: Контейнер с содержимым вкладки
+        html.Div: Tab container with content
     """
     return html.Div([
-        # 1. График "Тапы и Золото по дням"
+        # 1. "Taps and Gold by Day" graph
         html.Div([
-            html.H4("Тапы и Золото по дням", className="tab-section-title"),
+            html.H4("Taps and Gold by Day", className="tab-section-title"),
             dcc.Graph(id="taps-gold-by-day-graph"),
             html.Div([
-                html.H5("Сводная статистика", className="subsection-title", style={"marginTop": "15px"}),
+                html.H5("Summary Statistics", className="subsection-title", style={"marginTop": "15px"}),
                 html.Div([
                     html.Div([
-                        html.P("Всего тапов:", style={"fontWeight": "bold", "margin": "0"}),
+                        html.P("Total taps:", style={"fontWeight": "bold", "margin": "0"}),
                         html.P(id="total-taps", className="metric-value")
                     ], className="metric-box"),
                     html.Div([
-                        html.P("Всего золота от тапов:", style={"fontWeight": "bold", "margin": "0"}),
+                        html.P("Total gold from taps:", style={"fontWeight": "bold", "margin": "0"}),
                         html.P(id="total-gold-from-taps", className="metric-value")
                     ], className="metric-box"),
                     html.Div([
-                        html.P("Среднее тапов за сессию:", style={"fontWeight": "bold", "margin": "0"}),
+                        html.P("Average taps per session:", style={"fontWeight": "bold", "margin": "0"}),
                         html.P(id="avg-taps-per-session", className="metric-value")
                     ], className="metric-box"),
                 ], style={"display": "flex", "flexWrap": "wrap", "gap": "15px", "marginTop": "10px", "justifyContent": "space-between"})
             ]),
         ], className="tab-section"),
         
-        # 2. График "Энергия по времени" (внутри одной сессии)
+        # 2. "Energy Over Time" graph (within one session)
         html.Div([
-            html.H4("Энергия по времени (в рамках сессии)", className="tab-section-title"),
+            html.H4("Energy Over Time (within session)", className="tab-section-title"),
             dcc.Dropdown(
                 id="session-select-dropdown",
-                placeholder="Выберите сессию для анализа",
+                placeholder="Select session for analysis",
                 style={"marginBottom": "15px"}
             ),
             dcc.Graph(id="energy-over-time-graph"),
         ], className="tab-section"),
         
-        # 3. Таблица по дням
+        # 3. Daily statistics table
         html.Div([
-            html.H4("Статистика тапания по дням", className="tab-section-title"),
+            html.H4("Daily Tapping Statistics", className="tab-section-title"),
             DataTable(
                 id="tapping-stats-table",
                 columns=[
-                    {"name": "День", "id": "day"},
-                    {"name": "Количество тапов", "id": "taps"},
-                    {"name": "Потрачено энергии", "id": "energy"},
-                    {"name": "Получено золота", "id": "gold"},
+                    {"name": "Day", "id": "day"},
+                    {"name": "Number of taps", "id": "taps"},
+                    {"name": "Energy spent", "id": "energy"},
+                    {"name": "Gold received", "id": "gold"},
                 ],
                 style_header={
                     'backgroundColor': '#f8f9fa',
@@ -627,58 +627,58 @@ def create_tapping_tab():
 
 def create_tabs():
     """
-    Создает набор вкладок для отображения результатов симуляции.
+    Creates tabs for displaying simulation results.
     
     Returns:
-        dcc.Tabs: Компонент с вкладками
+        dcc.Tabs: Tabs component
     """
     return dcc.Tabs([
-        dcc.Tab(label="Обзор", children=create_overview_tab(), className="custom-tab", selected_className="custom-tab--selected"),
-        dcc.Tab(label="Прогресс", children=create_progress_tab(), className="custom-tab", selected_className="custom-tab--selected"),
-        dcc.Tab(label="Локации", children=create_locations_tab(), className="custom-tab", selected_className="custom-tab--selected"),
-        dcc.Tab(label="Экономика", children=create_economy_tab(), className="custom-tab", selected_className="custom-tab--selected"),
-        dcc.Tab(label="Темп", children=create_pace_tab(), className="custom-tab", selected_className="custom-tab--selected"),
-        dcc.Tab(label="Тапание", children=create_tapping_tab(), className="custom-tab", selected_className="custom-tab--selected"),
+        dcc.Tab(label="Overview", children=create_overview_tab(), className="custom-tab", selected_className="custom-tab--selected"),
+        dcc.Tab(label="Progress", children=create_progress_tab(), className="custom-tab", selected_className="custom-tab--selected"),
+        dcc.Tab(label="Locations", children=create_locations_tab(), className="custom-tab", selected_className="custom-tab--selected"),
+        dcc.Tab(label="Economy", children=create_economy_tab(), className="custom-tab", selected_className="custom-tab--selected"),
+        dcc.Tab(label="Pace", children=create_pace_tab(), className="custom-tab", selected_className="custom-tab--selected"),
+        dcc.Tab(label="Tapping", children=create_tapping_tab(), className="custom-tab", selected_className="custom-tab--selected"),
     ], className="custom-tabs")
 
 def create_layout(title):
     """
-    Создает основной макет дашборда.
+    Creates main dashboard layout.
     
     Args:
-        title: Заголовок дашборда
+        title: Dashboard title
         
     Returns:
-        html.Div: Макет дашборда
+        html.Div: Dashboard layout
     """
     return html.Div([
-        # Добавляем стили через external_stylesheets
+        # Add styles through external_stylesheets
         html.Link(
             rel='stylesheet',
             href='/assets/style.css'
         ),
         
-        # Заголовок
+        # Title
         html.Div([
             html.H1(title, style={"margin": "0", "color": "white"})
         ], style={"backgroundColor": "#343a40", "padding": "15px 20px", "boxShadow": "0 2px 5px rgba(0,0,0,0.2)"}),
         
-        # Основной контейнер (сайдбар + контент)
+        # Main container (sidebar + content)
         html.Div([
-            # Панель настроек (слева)
+            # Settings panel (left)
             create_settings_panel(),
             
-            # Основной контент (справа)
+            # Main content (right)
             html.Div([
                 create_tabs(),
             ], style=STYLE_MAIN_CONTENT),
         ], style=STYLE_CONTAINER),
         
-        # Хранилища данных
+        # Data stores
         dcc.Store(id="simulation-data-store"),
         dcc.Store(id="user-levels-store"),
-        # Добавляем флаг, указывающий, что симуляция еще не запущена
+        # Add flag indicating simulation hasn't been run
         dcc.Store(id="auto-run-store", data={"auto_run": False}),
-        # Хранилище для данных о тапании
+        # Store for tapping data
         dcc.Store(id="tapping-stats-store")
     ]) 

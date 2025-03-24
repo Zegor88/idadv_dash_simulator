@@ -45,32 +45,32 @@ def update_progression_analysis(data, auto_run_data):
     if not auto_run_data or not auto_run_data.get("auto_run"):
         empty_figure = go.Figure()
         empty_figure.update_layout(
-            title="Запустите симуляцию для отображения данных",
+            title="Run simulation to display data",
             xaxis={"visible": False},
             yaxis={"visible": False},
             annotations=[{
-                "text": "Нет данных. Нажмите кнопку 'Запустить симуляцию'",
+                "text": "No data. Click 'Run simulation' button",
                 "xref": "paper",
                 "yref": "paper",
                 "showarrow": False,
                 "font": {"size": 16}
             }]
         )
-        return empty_figure, empty_figure, "Запустите симуляцию для отображения данных"
+        return empty_figure, empty_figure, "Run simulation to display data"
     
     if data is None or "history" not in data:
-        return {}, {}, "Нет данных"
+        return {}, {}, "No data"
     
     history = data["history"]
     if not history:
-        return {}, {}, "Нет данных"
+        return {}, {}, "No data"
     
     # Анализ времени между улучшениями
     pace_fig = make_subplots(
         rows=2, cols=1,
         subplot_titles=(
-            "Время между улучшениями (часы)",
-            "Количество улучшений в день"
+            "Time between upgrades (hours)",
+            "Number of upgrades per day"
         ),
         vertical_spacing=0.15
     )
@@ -90,9 +90,9 @@ def update_progression_analysis(data, auto_run_data):
             x=list(range(len(intervals))),
             y=intervals,
             mode="lines+markers",
-            name="Интервал",
+            name="Interval",
             line=dict(color="royalblue"),
-            hovertemplate="Улучшение %{x}<br>Интервал: %{y:.2f} ч"
+            hovertemplate="Upgrade %{x}<br>Interval: %{y:.2f} hours"
         ),
         row=1, col=1
     )
@@ -103,9 +103,9 @@ def update_progression_analysis(data, auto_run_data):
             x=[0, len(intervals)-1],
             y=[avg_interval, avg_interval],
             mode="lines",
-            name="Средний интервал",
+            name="Average interval",
             line=dict(color="red", dash="dash"),
-            hovertemplate="Средний интервал: %{y:.2f} ч"
+            hovertemplate="Average interval: %{y:.2f} hours"
         ),
         row=1, col=1
     )
@@ -119,9 +119,9 @@ def update_progression_analysis(data, auto_run_data):
         go.Bar(
             x=days,
             y=counts,
-            name="Улучшений в день",
+            name="Upgrades per day",
             marker_color="green",
-            hovertemplate="День %{x}<br>Улучшений: %{y}"
+            hovertemplate="Day %{x}<br>Upgrades: %{y}"
         ),
         row=2, col=1
     )
@@ -133,9 +133,9 @@ def update_progression_analysis(data, auto_run_data):
             x=[min(days), max(days)] if days else [0, 0],
             y=[avg_upgrades, avg_upgrades],
             mode="lines",
-            name="Среднее количество",
+            name="Average number of upgrades",
             line=dict(color="red", dash="dash"),
-            hovertemplate="Среднее: %{y:.2f}"
+            hovertemplate="Average: %{y:.2f}"
         ),
         row=2, col=1
     )
@@ -163,9 +163,9 @@ def update_progression_analysis(data, auto_run_data):
             go.Bar(
                 x=days,
                 y=durations,
-                name="Длительность",
+                name="Duration",
                 marker_color="indianred",
-                hovertemplate="Начало: День %{x:.1f}<br>Длительность: %{y:.1f} дней"
+                hovertemplate="Start: Day %{x:.1f}<br>Duration: %{y:.1f} days"
             )
         )
         
@@ -175,15 +175,15 @@ def update_progression_analysis(data, auto_run_data):
                 x=[min(days), max(days)],
                 y=[1, 1],
                 mode="lines",
-                name="Граница (1 день)",
+                name="Border (1 day)",
                 line=dict(color="black", dash="dash")
             )
         )
         
         stagnation_fig.update_layout(
-            title="Периоды стагнации",
-            xaxis_title="День начала",
-            yaxis_title="Длительность (дни)",
+            title="Stagnation periods",
+            xaxis_title="Start day",
+            yaxis_title="Duration (days)",
             hovermode="x unified"
         )
     else:
@@ -197,9 +197,9 @@ def update_progression_analysis(data, auto_run_data):
             )
         )
         stagnation_fig.update_layout(
-            title="Нет периодов стагнации",
-            xaxis_title="День",
-            yaxis_title="Длительность (дни)"
+            title="No stagnation periods",
+            xaxis_title="Day",
+            yaxis_title="Duration (days)"
         )
     
     # Статистика прогресса
@@ -209,14 +209,14 @@ def update_progression_analysis(data, auto_run_data):
     
     stats = html.Div([
         html.Div([
-            html.H4("Статистика прогресса:"),
+            html.H4("Progress statistics:"),
             html.Ul([
-                html.Li(f"Среднее время между улучшениями: {avg_interval:.2f} часов"),
-                html.Li(f"Медианное время между улучшениями: {median_interval:.2f} часов"),
-                html.Li(f"Максимальное время между улучшениями: {max_interval:.2f} часов"),
-                html.Li(f"Среднее количество улучшений в день: {avg_upgrades:.2f}"),
-                html.Li(f"Дней с улучшениями: {days_with_upgrades} из {total_days} ({efficiency:.1f}%)"),
-                html.Li(f"Количество периодов стагнации (>1 дня): {len([p for p in stagnation_periods if p['duration_days'] > 1])}"),
+                html.Li(f"Average time between upgrades: {avg_interval:.2f} hours"),
+                html.Li(f"Median time between upgrades: {median_interval:.2f} hours"),
+                html.Li(f"Maximum time between upgrades: {max_interval:.2f} hours"),
+                html.Li(f"Average number of upgrades per day: {avg_upgrades:.2f}"),
+                html.Li(f"Days with upgrades: {days_with_upgrades} from {total_days} ({efficiency:.1f}%)"),
+                html.Li(f"Number of stagnation periods (>1 day): {len([p for p in stagnation_periods if p['duration_days'] > 1])}"),
             ])
         ])
     ])
@@ -245,11 +245,11 @@ def update_user_level_progress(data, auto_run_data):
     if not auto_run_data or not auto_run_data.get("auto_run"):
         empty_figure = go.Figure()
         empty_figure.update_layout(
-            title="Запустите симуляцию для отображения данных",
+            title="Run simulation to display data",
             xaxis={"visible": False},
             yaxis={"visible": False},
             annotations=[{
-                "text": "Нет данных. Нажмите кнопку 'Запустить симуляцию'",
+                "text": "No data. Click 'Run simulation' button",
                 "xref": "paper",
                 "yref": "paper",
                 "showarrow": False,
@@ -271,7 +271,7 @@ def update_user_level_progress(data, auto_run_data):
     # Создаем график
     fig = create_subplot_figure(
         rows=2, cols=1,
-        subplot_titles=("Уровень персонажа", "Опыт персонажа"),
+        subplot_titles=("Character level", "Character XP"),
         vertical_spacing=0.3
     )
     
@@ -283,7 +283,7 @@ def update_user_level_progress(data, auto_run_data):
         fig, 
         x=days, 
         y=levels, 
-        name="Уровень", 
+        name="Level", 
         color=PLOT_COLORS["level"],
         mode="lines+markers",
         row=1, col=1
@@ -296,17 +296,17 @@ def update_user_level_progress(data, auto_run_data):
         fig, 
         x=days, 
         y=xp, 
-        name="Опыт", 
+        name="XP", 
         color=PLOT_COLORS["xp"],
         row=2, col=1
     )
     
     # Настраиваем оси
-    fig.update_yaxes(title="Уровень", row=1, col=1)
-    fig.update_xaxes(title="День", row=1, col=1)
+    fig.update_yaxes(title="Level", row=1, col=1)
+    fig.update_xaxes(title="Day", row=1, col=1)
     
-    fig.update_yaxes(title="Опыт", row=2, col=1)
-    fig.update_xaxes(title="День", row=2, col=1)
+    fig.update_yaxes(title="XP", row=2, col=1)
+    fig.update_xaxes(title="Day", row=2, col=1)
     
     return fig
 
@@ -332,11 +332,11 @@ def update_resources_over_time(data, auto_run_data):
     if not auto_run_data or not auto_run_data.get("auto_run"):
         empty_figure = go.Figure()
         empty_figure.update_layout(
-            title="Запустите симуляцию для отображения данных",
+            title="Run simulation to display data",
             xaxis={"visible": False},
             yaxis={"visible": False},
             annotations=[{
-                "text": "Нет данных. Нажмите кнопку 'Запустить симуляцию'",
+                "text": "No data. Click 'Run simulation' button",
                 "xref": "paper",
                 "yref": "paper",
                 "showarrow": False,
@@ -358,7 +358,7 @@ def update_resources_over_time(data, auto_run_data):
     # Создаем график
     fig = create_subplot_figure(
         rows=3, cols=1,
-        subplot_titles=("Золото", "Ключи", "Заработок (gold/sec)"),
+        subplot_titles=("Gold", "Keys", "Earnings (gold/sec)"),
         row_heights=[0.33, 0.33, 0.33],
         vertical_spacing=0.15
     )
@@ -373,7 +373,7 @@ def update_resources_over_time(data, auto_run_data):
         fig, 
         x=days, 
         y=gold, 
-        name="Золото", 
+        name="Gold", 
         color=PLOT_COLORS["gold"],
         row=1, col=1
     )
@@ -382,7 +382,7 @@ def update_resources_over_time(data, auto_run_data):
         fig, 
         x=days, 
         y=keys, 
-        name="Ключи", 
+        name="Keys", 
         color=PLOT_COLORS["keys"],
         row=2, col=1
     )
@@ -398,10 +398,10 @@ def update_resources_over_time(data, auto_run_data):
     
     # Настраиваем оси
     for row in range(1, 4):
-        fig.update_xaxes(title="День", row=row, col=1)
+        fig.update_xaxes(title="Day", row=row, col=1)
     
-    fig.update_yaxes(title="Золото", row=1, col=1)
-    fig.update_yaxes(title="Ключи", row=2, col=1)
+    fig.update_yaxes(title="Gold", row=1, col=1)
+    fig.update_yaxes(title="Keys", row=2, col=1)
     fig.update_yaxes(title="Gold/sec", row=3, col=1)
     
     return fig
@@ -427,12 +427,12 @@ def update_coins_per_level_table(user_levels_data):
     
     # Создаем таблицу
     header = html.Tr([
-        html.Th("Уровень"),
-        html.Th("XP требуется"),
+        html.Th("Level"),
+        html.Th("XP required"),
         html.Th("Gold/sec"),
-        html.Th("Награда ключей"),
-        html.Th("Gold/час"),
-        html.Th("Gold/день")
+        html.Th("Keys reward"),
+        html.Th("Gold/hour"),
+        html.Th("Gold/day")
     ])
     
     rows = []
@@ -490,10 +490,10 @@ def update_daily_events_table(data, auto_run_data):
     # Проверяем, была ли запущена симуляция
     if not auto_run_data or not auto_run_data.get("auto_run"):
         empty_columns = [
-            {"name": "День", "id": "День"},
-            {"name": "Информация", "id": "Информация"}
+            {"name": "Day", "id": "Day"},
+            {"name": "Information", "id": "Information"}
         ]
-        empty_data = [{"День": "", "Информация": "Запустите симуляцию для отображения данных"}]
+        empty_data = [{"Day": "", "Information": "Run simulation to display data"}]
         return empty_data, empty_columns
     
     if data is None or "history" not in data:
@@ -524,44 +524,59 @@ def update_daily_events_table(data, auto_run_data):
         
         # Добавляем строку в таблицу для отображения (с форматированием)
         table_data.append({
-            "День": event["day"],
-            "Входы в игру": event["sessions_count"],
-            "Время в игре (мин)": round(event["session_minutes"], 1),
-            "Повышения уровня": event["level_ups"],
-            "Диапазон уровня": level_range_str,
-            "Улучшения локаций": event["upgrades_count"],
-            "Новые локации": event["new_locations"],
-            "Золото": f"{event['gold']:,.0f}",
-            "XP": f"{event['xp']:,.0f}",
-            "Ключи": event["keys"]
+            "Day": event["day"],
+            "Sessions count": event["sessions_count"],
+            "Session minutes": round(event["session_minutes"], 1),
+            "Level ups": event["level_ups"],
+            "Level range": level_range_str,
+            "Upgrades count": event["upgrades_count"],
+            "New locations": event["new_locations"],
+            "Gold (balance)": f"{event['gold']:,.0f}",
+            "Gold (earned)": f"{event['gold_earned']:,.0f}",
+            "Gold (spent)": f"{event['gold_spent']:,.0f}",
+            "XP (balance)": f"{event['xp']:,.0f}",
+            "XP (earned)": f"{event['xp_earned']:,.0f}",
+            "Keys (balance)": event["keys"],
+            "Keys (earned)": event["keys_earned"],
+            "Keys (spent)": event["keys_spent"]
         })
         
         # Добавляем строку для экспорта (с числовыми значениями)
         export_data.append({
-            "День": event["day"],
-            "Входы в игру": event["sessions_count"],
-            "Время в игре (мин)": round(event["session_minutes"], 1),
-            "Повышения уровня": event["level_ups"],
-            "Диапазон уровня": level_range_str,
-            "Улучшения локаций": event["upgrades_count"],
-            "Новые локации": event["new_locations"],
-            "Золото": event["gold"],
-            "XP": event["xp"],
-            "Ключи": event["keys"]
+            "Day": event["day"],
+            "Sessions count": event["sessions_count"],
+            "Session minutes": round(event["session_minutes"], 1),
+            "Level ups": event["level_ups"],
+            "Level range": level_range_str,
+            "Upgrades count": event["upgrades_count"],
+            "New locations": event["new_locations"],
+            "Gold (balance)": event["gold"],
+            "Gold (earned)": event["gold_earned"],
+            "Gold (spent)": event["gold_spent"],
+            "XP (balance)": event["xp"],
+            "XP (earned)": event["xp_earned"],
+            "Keys (balance)": event["keys"],
+            "Keys (earned)": event["keys_earned"],
+            "Keys (spent)": event["keys_spent"]
         })
     
     # Определяем колонки
     columns = [
-        {"name": "День", "id": "День", "type": "numeric"},
-        {"name": "Входы в игру", "id": "Входы в игру", "type": "numeric"},
-        {"name": "Время в игре (мин)", "id": "Время в игре (мин)", "type": "numeric"},
-        {"name": "Повышения уровня", "id": "Повышения уровня", "type": "numeric"},
-        {"name": "Диапазон уровня", "id": "Диапазон уровня"},
-        {"name": "Улучшения локаций", "id": "Улучшения локаций", "type": "numeric"},
-        {"name": "Новые локации", "id": "Новые локации", "type": "numeric"},
-        {"name": "Золото", "id": "Золото"},
-        {"name": "XP", "id": "XP"},
-        {"name": "Ключи", "id": "Ключи", "type": "numeric"}
+        {"name": "Day", "id": "Day", "type": "numeric"},
+        {"name": "Sessions count", "id": "Sessions count", "type": "numeric"},
+        {"name": "Session minutes", "id": "Session minutes", "type": "numeric"},
+        {"name": "Level ups", "id": "Level ups", "type": "numeric"},
+        {"name": "Level range", "id": "Level range"},
+        {"name": "Upgrades count", "id": "Upgrades count", "type": "numeric"},
+        {"name": "New locations", "id": "New locations", "type": "numeric"},
+        {"name": "Gold (balance)", "id": "Gold (balance)"},
+        {"name": "Gold (earned)", "id": "Gold (earned)"},
+        {"name": "Gold (spent)", "id": "Gold (spent)"},
+        {"name": "XP (balance)", "id": "XP (balance)"},
+        {"name": "XP (earned)", "id": "XP (earned)"},
+        {"name": "Keys (balance)", "id": "Keys (balance)", "type": "numeric"},
+        {"name": "Keys (earned)", "id": "Keys (earned)", "type": "numeric"},
+        {"name": "Keys (spent)", "id": "Keys (spent)", "type": "numeric"}
     ]
     
     # Экспортируем таблицу в CSV (используем неформатированные данные)
