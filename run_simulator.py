@@ -19,7 +19,7 @@ from idadv_dash_simulator.simulator import Simulator
 from idadv_dash_simulator.config.simulation_config import create_sample_config
 from idadv_dash_simulator.utils.economy import format_time
 from idadv_dash_simulator.utils.validation import is_config_valid
-from idadv_dash_simulator.models.config import EconomyConfig, SimulationAlgorithm, StartingBalanceConfig
+from idadv_dash_simulator.models.config import EconomyConfig, SimulationAlgorithm, StartingBalanceConfig, TappingConfig
 
 def parse_arguments():
     """
@@ -90,6 +90,37 @@ def parse_arguments():
         help="Путь для экспорта результатов в JSON"
     )
     
+    # Параметры тапания
+    parser.add_argument(
+        "--enable-tapping", 
+        action="store_true", 
+        help="Включить механику тапания"
+    )
+    
+    parser.add_argument(
+        "--disable-tapping", 
+        action="store_true", 
+        help="Выключить механику тапания"
+    )
+    
+    parser.add_argument(
+        "--max-energy", 
+        type=int,
+        help="Максимальный запас энергии для тапания"
+    )
+    
+    parser.add_argument(
+        "--tap-speed", 
+        type=float,
+        help="Скорость тапания (тапов в секунду)"
+    )
+    
+    parser.add_argument(
+        "--gold-per-tap", 
+        type=float,
+        help="Количество золота за 1 тап"
+    )
+    
     parser.add_argument(
         "--verbose", 
         action="store_true", 
@@ -132,9 +163,27 @@ def main():
         for level, cooldown in config.location_cooldowns.items():
             config.location_cooldowns[level] = int(cooldown * args.cooldown_multiplier)
     
-    # Устанавливаем алгоритм симуляции
+    # Обновляем алгоритм симуляции
     if args.algorithm is not None:
         config.simulation_algorithm = SimulationAlgorithm(args.algorithm)
+    
+    # Обновляем настройки тапания
+    if hasattr(config, 'tapping'):
+        # Включаем/выключаем тапание
+        if args.enable_tapping:
+            config.tapping.is_tapping = True
+        elif args.disable_tapping:
+            config.tapping.is_tapping = False
+            
+        # Обновляем параметры тапания, если они указаны
+        if args.max_energy is not None:
+            config.tapping.max_energy_capacity = args.max_energy
+            
+        if args.tap_speed is not None:
+            config.tapping.tap_speed = args.tap_speed
+            
+        if args.gold_per_tap is not None:
+            config.tapping.gold_per_tap = args.gold_per_tap
     
     # Обновляем расписание проверок
     if args.checks_per_day is not None:
@@ -170,19 +219,41 @@ def main():
     print(f"Симуляция завершена за {time_passed}")
     
     # Выводим финальное состояние
-    print(f"Финальное состояние:")
-    print(f"  - Уровень пользователя: {simulator.workflow.balance.user_level}")
-    print(f"  - Золото: {simulator.workflow.balance.gold:.2f}")
-    print(f"  - Опыт: {simulator.workflow.balance.xp}")
-    print(f"  - Ключи: {simulator.workflow.balance.keys}")
-    print(f"  - Заработок в секунду: {simulator.workflow.balance.earn_per_sec:.2f}")
+    print(f"Final state:")
+    print(f"  - User level: {simulator.workflow.balance.user_level}")
+    print(f"  - Gold: {simulator.workflow.balance.gold:.2f}")
+    print(f"  - XP: {simulator.workflow.balance.xp}")
+    print(f"  - Keys: {simulator.workflow.balance.keys}")
+    print(f"  - Earn per sec: {simulator.workflow.balance.earn_per_sec:.2f}")
+    
+    # Отображаем информацию о тапании, если оно включено
+    if simulator.config.tapping and simulator.config.tapping.is_tapping:
+        # Получаем значения с проверкой на None
+        max_energy = simulator.config.tapping.max_energy_capacity or 700
+        tap_speed = simulator.config.tapping.tap_speed or 3.0
+        gold_per_tap = simulator.config.tapping.gold_per_tap or 10.0
+        
+        print("\nTapping information:")
+        print(f"  - Status: {'Enabled' if simulator.config.tapping.is_tapping else 'Disabled'}")
+        print(f"  - Energy capacity: {max_energy}")
+        print(f"  - Tap speed: {tap_speed:.1f} taps/sec")
+        print(f"  - Gold per tap: {gold_per_tap:.1f}")
+        
+        # Расчет золота от тапания за все дни симуляции
+        days_simulated = result.timestamp // 86400 + 1
+        tapping_gold_per_day = max_energy * 0.7 * gold_per_tap
+        total_tapping_gold = tapping_gold_per_day * days_simulated
+        
+        print(f"  - Примерное золото от тапания за день: {tapping_gold_per_day:.2f}")
+        print(f"  - Всего золота от тапания за {days_simulated} дней: {total_tapping_gold:.2f}")
+        print(f"  - Доля тапания в общем доходе: {(total_tapping_gold / simulator.workflow.balance.gold * 100):.1f}%")
     
     # Если указан флаг --verbose, выводим подробную информацию
     if args.verbose:
-        print("\nИнформация о локациях:")
+        print("\nLocation information:")
         for loc_id, location in sorted(simulator.workflow.locations.items()):
-            status = "Доступна" if location.available else "Недоступна"
-            print(f"  - Локация {loc_id}: уровень {location.current_level}, {status}")
+            status = "Available" if location.available else "Not available"
+            print(f"  - Location {loc_id}: level {location.current_level}, {status}")
     
     # Экспортируем результат, если указан путь
     if args.export:
@@ -193,6 +264,28 @@ def main():
         if not export_dir.exists() and str(export_dir) != ".":
             export_dir.mkdir(parents=True, exist_ok=True)
         
+        # Добавляем информацию о тапании, если оно включено
+        tapping_info = {}
+        if simulator.config.tapping and simulator.config.tapping.is_tapping:
+            # Получаем значения с проверкой на None
+            max_energy = simulator.config.tapping.max_energy_capacity or 700
+            tap_speed = simulator.config.tapping.tap_speed or 3.0
+            gold_per_tap = simulator.config.tapping.gold_per_tap or 10.0
+            
+            days_simulated = result.timestamp // 86400 + 1
+            tapping_gold_per_day = max_energy * 0.7 * gold_per_tap
+            total_tapping_gold = tapping_gold_per_day * days_simulated
+            
+            tapping_info = {
+                "enabled": simulator.config.tapping.is_tapping,
+                "max_energy": max_energy,
+                "tap_speed": tap_speed,
+                "gold_per_tap": gold_per_tap,
+                "gold_per_day": tapping_gold_per_day,
+                "total_gold": total_tapping_gold,
+                "share_in_total_income": (total_tapping_gold / simulator.workflow.balance.gold * 100)
+            }
+        
         with open(export_path, 'w', encoding='utf-8') as f:
             # Преобразуем историю в сериализуемый формат
             serializable_history = [state for state in result.history]
@@ -200,6 +293,7 @@ def main():
                 "timestamp": result.timestamp,
                 "stop_reason": result.stop_reason,
                 "final_state": simulator.result_summary,
+                "tapping": tapping_info,
                 "history": serializable_history if args.verbose else []
             }, f, ensure_ascii=False, indent=2)
         

@@ -501,4 +501,46 @@ def update_tapping_stats_table(tapping_data):
             "gold": f"{total_gold:,.0f}".replace(",", " ")
         })
     
-    return table_data 
+    return table_data
+
+@app.callback(
+    Output("tapping-config-store", "data"),
+    [Input("enable-tapping-switch", "value"),
+     Input("max-energy-input", "value"),
+     Input("tap-speed-input", "value"),
+     Input("gold-per-tap-input", "value")]
+)
+def update_tapping_config(is_tapping, max_energy, tap_speed, gold_per_tap):
+    """
+    Обновляет конфигурацию тапания на основе пользовательского ввода.
+    
+    Args:
+        is_tapping: Включено ли тапание
+        max_energy: Максимальный запас энергии
+        tap_speed: Скорость тапания (тапов в секунду)
+        gold_per_tap: Золото за 1 тап
+        
+    Returns:
+        dict: Обновленная конфигурация тапания
+    """
+    # Конвертируем значения в числа с проверкой на None
+    max_energy_value = int(max_energy) if max_energy is not None else 700
+    tap_speed_value = float(tap_speed) if tap_speed is not None else 3.0
+    gold_per_tap_value = float(gold_per_tap) if gold_per_tap is not None else 10.0
+    
+    # Убедимся, что значения имеют правильные типы и не None
+    if max_energy_value is None or max_energy_value <= 0:
+        max_energy_value = 700
+    if tap_speed_value is None or tap_speed_value <= 0:
+        tap_speed_value = 3.0
+    if gold_per_tap_value is None or gold_per_tap_value <= 0:
+        gold_per_tap_value = 10.0
+    
+    print(f"Debug - Tapping config updated: enabled={is_tapping}, max_energy={max_energy_value}, tap_speed={tap_speed_value}, gold_per_tap={gold_per_tap_value}")
+    
+    return {
+        "is_tapping": bool(is_tapping),
+        "max_energy_capacity": max_energy_value,
+        "tap_speed": tap_speed_value,
+        "gold_per_tap": gold_per_tap_value
+    } 

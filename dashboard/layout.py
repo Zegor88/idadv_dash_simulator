@@ -256,7 +256,7 @@ def create_settings_panel():
                     value=DEFAULT_GOLD_PER_TAP,
                     step=1,
                     min=1,
-                    max=100,
+                    max=10000,
                     style={"width": "100%", "marginBottom": "15px", "padding": "8px"}
                 ),
             ]),

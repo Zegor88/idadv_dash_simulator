@@ -9,7 +9,8 @@ from idadv_dash_simulator.models.config import (
     LocationConfig,
     UserLevelConfig,
     SimulationConfig,
-    EconomyConfig
+    EconomyConfig,
+    TappingConfig
 )
 from idadv_dash_simulator.utils.economy import calculate_gold_per_sec
 
@@ -172,11 +173,20 @@ def create_sample_config() -> SimulationConfig:
         72000,      # 20:00
     ]
     
+    # Конфигурация механики тапания
+    tapping_config = TappingConfig(
+        is_tapping=True,  # Включаем тапание по умолчанию
+        max_energy_capacity=700,  # Максимальный запас энергии
+        tap_speed=3.0,  # Скорость тапания (тапов в секунду)
+        gold_per_tap=10.0  # Золото за 1 тап
+    )
+    
     return SimulationConfig(
         locations=locations,
         location_cooldowns=location_cooldowns,
         location_rarity_config=location_rarity_config,
         user_levels=user_levels,
         check_schedule=check_schedule,
-        economy=economy
+        economy=economy,
+        tapping=tapping_config
     ) 

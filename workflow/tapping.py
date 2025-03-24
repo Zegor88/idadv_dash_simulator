@@ -46,8 +46,16 @@ class TappingEngine:
             config: Конфигурация механики тапания
         """
         self.config = config
+        # Устанавливаем значения по умолчанию, если они отсутствуют
+        if self.config.gold_per_tap is None:
+            self.config.gold_per_tap = 10.0
+        if self.config.tap_speed is None:
+            self.config.tap_speed = 3.0
+        if self.config.max_energy_capacity is None:
+            self.config.max_energy_capacity = 700
+            
         self.days_data: List[TapDay] = []
-        self.current_energy = config.max_energy_capacity
+        self.current_energy = self.config.max_energy_capacity
     
     def simulate_sessions(self, session_times: List[int], session_duration: int) -> List[TapDay]:
         """

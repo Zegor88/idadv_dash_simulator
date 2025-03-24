@@ -208,6 +208,11 @@ def _create_simulation_config(base_gold: float, earn_coefficient: float, cooldow
     if game_duration is None or game_duration <= 0:
         game_duration = 15  # 15 минут по умолчанию
     
+    # Значения тапания с защитой от None
+    max_energy_value = int(max_energy) if max_energy is not None and max_energy > 0 else 700
+    tap_speed_value = float(tap_speed) if tap_speed is not None and tap_speed > 0 else 3.0
+    gold_per_tap_value = float(gold_per_tap) if gold_per_tap is not None and gold_per_tap > 0 else 10.0
+    
     # Преобразуем длительность игровой сессии в секунды
     game_duration_seconds = game_duration * 60
     
@@ -232,12 +237,29 @@ def _create_simulation_config(base_gold: float, earn_coefficient: float, cooldow
     
     # Добавляем конфигурацию тапания, если она включена
     if is_tapping and 'is_tapping' in is_tapping:
+        print(f"DEBUG: Creating tapping config with gold_per_tap={gold_per_tap_value}")
+        try:
+            gold_per_tap_value = float(gold_per_tap_value)
+            if gold_per_tap_value <= 0:
+                gold_per_tap_value = 10.0
+        except (TypeError, ValueError):
+            gold_per_tap_value = 10.0
+        
         config.tapping = TappingConfig(
             is_tapping=True,
-            max_energy_capacity=max_energy,
-            tap_speed=tap_speed,
-            gold_per_tap=gold_per_tap
+            max_energy_capacity=max_energy_value,
+            tap_speed=tap_speed_value,
+            gold_per_tap=gold_per_tap_value
         )
+    else:
+        # Если тапание отключено, создаем конфигурацию с is_tapping=False
+        config.tapping = TappingConfig(
+            is_tapping=False,
+            max_energy_capacity=max_energy_value,
+            tap_speed=tap_speed_value,
+            gold_per_tap=gold_per_tap_value
+        )
+        print("DEBUG: Tapping is disabled in config")
     
     # Обновляем расписание проверок на основе введенных времен
     _update_check_schedule_from_times(config, check_times_data)

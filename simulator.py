@@ -12,6 +12,7 @@ from idadv_dash_simulator.models.enums import LocationRarityType
 from idadv_dash_simulator.workflow.location import Location
 from idadv_dash_simulator.workflow.workflow import Workflow
 from idadv_dash_simulator.workflow.simulation_response import SimulationResponse
+from idadv_dash_simulator.workflow.tapping import TappingEngine
 
 from idadv_dash_simulator.config.simulation_config import create_sample_config
 
@@ -63,6 +64,16 @@ class Simulator:
         
         # Устанавливаем параметры экономики
         self.workflow.economy = self.config.economy
+        
+        # Устанавливаем конфигурацию тапания, если она доступна
+        if hasattr(self.config, 'tapping'):
+            self.workflow.tapping_config = self.config.tapping
+            # Создаем движок тапания только если тапание включено
+            if self.config.tapping.is_tapping:
+                self.workflow.tapping_engine = TappingEngine(self.config.tapping)
+                print(f"DEBUG: Tapping engine initialized with gold_per_tap={self.config.tapping.gold_per_tap}")
+            else:
+                print("DEBUG: Tapping is disabled in workflow")
         
         # Устанавливаем алгоритм симуляции
         self.workflow.simulation_algorithm = self.config.simulation_algorithm

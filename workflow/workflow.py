@@ -1,12 +1,13 @@
 import logging
 import uuid
 import copy
-from typing import Dict, List
+from typing import Dict, List, Optional
 
-from idadv_dash_simulator.models.config import UserLevelConfig, EconomyConfig, SimulationAlgorithm
+from idadv_dash_simulator.models.config import UserLevelConfig, EconomyConfig, SimulationAlgorithm, TappingConfig
 from idadv_dash_simulator.workflow.balance import Balance
 from idadv_dash_simulator.workflow.location import Location
 from idadv_dash_simulator.workflow.simulation_response import SimulationResponse
+from idadv_dash_simulator.workflow.tapping import TappingEngine
 
 logging.basicConfig(
     level=logging.INFO,
@@ -23,6 +24,8 @@ class Workflow:
         self.balance = Balance()
         self.economy: EconomyConfig = None  # Будет установлено при настройке
         self.simulation_algorithm = SimulationAlgorithm.SEQUENTIAL  # По умолчанию последовательное улучшение
+        self.tapping_config: TappingConfig = None  # Конфигурация тапания
+        self.tapping_engine: Optional[TappingEngine] = None  # Движок для тапания
     
     def simulate(self, simulation_id: str = None) -> SimulationResponse:
         if not simulation_id:
@@ -163,6 +166,59 @@ class Workflow:
                     # Берем последнюю проверку предыдущего дня
                     prev_day_start = current_day_start - 86400
                     last_check = prev_day_start + max(self.check_schedule)
+            
+            # Проверяем, является ли это первой сессией в текущем дне
+            is_first_session_of_day = t == min(self.check_schedule) + current_day_start
+            
+            # Если это первая сессия дня и тапание включено, добавляем доход от тапания
+            if is_first_session_of_day and self.tapping_config and self.tapping_config.is_tapping:
+                # Важно: дополнительная проверка, что тапание действительно включено
+                if not hasattr(self.tapping_config, 'is_tapping') or self.tapping_config.is_tapping is not True:
+                    logger.info(f"{game_time}: Tapping is disabled, no tapping income added")
+                    pass
+                else:
+                    day_number = t // 86400
+                    
+                    # Проверяем, что все параметры тапания существуют
+                    max_energy = self.tapping_config.max_energy_capacity
+                    gold_per_tap = self.tapping_config.gold_per_tap
+                    
+                    if max_energy is None:
+                        max_energy = 700
+                    if gold_per_tap is None:
+                        gold_per_tap = 10.0
+                        
+                    # Примерное количество золота, которое можно получить при полном использовании энергии
+                    # Используем стандартную формулу: энергия * коэффициент тапа * золото за тап
+                    tapping_gold = max_energy * 0.7 * gold_per_tap
+                    
+                    old_balance = self.balance.gold
+                    self.balance.gold += tapping_gold
+                    
+                    logger.info(
+                        f"{game_time}: Added tapping income for day {day_number + 1}:\n"
+                        f"  - Old balance: {old_balance:.2f} gold\n"
+                        f"  - Tapping income: {tapping_gold:.2f} gold\n"
+                        f"  - New balance: {self.balance.gold:.2f} gold"
+                    )
+                    
+                    # Записываем действие получения дохода от тапания
+                    if current_history is not None:
+                        action = {
+                            "type": "tapping_income",
+                            "timestamp": t,
+                            "description": f"Tapping income for day {day_number + 1}",
+                            "gold_before": old_balance,
+                            "gold_change": tapping_gold,
+                            "gold_after": self.balance.gold,
+                            "xp_before": self.balance.xp,
+                            "xp_change": 0,
+                            "xp_after": self.balance.xp,
+                            "keys_before": self.balance.keys,
+                            "keys_change": 0,
+                            "keys_after": self.balance.keys
+                        }
+                        current_history["actions"].append(action)
             
             # Начисляем пассивный доход за период, но только если это не первый вход в игру
             time_passed = t - last_check
