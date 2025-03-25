@@ -468,27 +468,47 @@ def update_locations_cost_table(data, auto_run_data):
     """
     # Проверяем, была ли запущена симуляция
     if not auto_run_data or not auto_run_data.get("auto_run") or data is None:
-        empty_data = []
-        empty_columns = [{"name": "", "id": "empty"}]
+        empty_columns = [{"name": "Location", "id": "location_id"}, {"name": "Status", "id": "status"}]
+        empty_data = [{"location_id": "", "status": "Run simulation to display data"}]
         empty_styles = []
         return empty_data, empty_columns, empty_styles
     
     # Извлекаем конфигурацию из данных
     if "config" not in data:
+        print("DEBUG: 'config' not in data")
         return [], [], []
     
     config = data["config"]
     if "locations" not in config:
+        print("DEBUG: 'locations' not in config")
         return [], [], []
     
     locations = config["locations"]
+    if not locations:
+        print("DEBUG: locations is empty")
+        return [], [], []
     
-    # Создаем данные для таблицы
+    print(f"DEBUG: Found {len(locations)} locations in config")
+    
     # Находим максимальное количество уровней
     max_level = 0
-    for loc_data in locations.values():
-        if "levels" in loc_data:
-            max_level = max(max_level, max(int(level) for level in loc_data["levels"].keys()))
+    for loc_id, loc_data in locations.items():
+        if isinstance(loc_data, dict) and "levels" in loc_data:
+            try:
+                levels = {int(k): v for k, v in loc_data["levels"].items()}
+                if levels:
+                    max_level = max(max_level, max(levels.keys()))
+            except Exception as e:
+                print(f"DEBUG: Error parsing levels for location {loc_id}: {str(e)}")
+    
+    print(f"DEBUG: Max level found: {max_level}")
+    
+    # Если не нашли уровней, возвращаем пустую таблицу
+    if max_level == 0:
+        empty_columns = [{"name": "Location", "id": "location_id"}, {"name": "Status", "id": "status"}]
+        empty_data = [{"location_id": "", "status": "No location levels found in config"}]
+        empty_styles = []
+        return empty_data, empty_columns, empty_styles
     
     # Создаем столбцы
     columns = [{"name": "Location", "id": "location_id"}]
@@ -499,36 +519,67 @@ def update_locations_cost_table(data, auto_run_data):
     table_data = []
     location_rarity = {}  # Словарь для хранения редкости каждой локации
     
-    for loc_id, loc_data in sorted(locations.items(), key=lambda x: int(x[0])):
+    for loc_id, loc_data in sorted(locations.items(), key=lambda x: int(x[0]) if str(x[0]).isdigit() else 0):
         row = {"location_id": f"Location {loc_id}"}
         
         # Запоминаем редкость локации
-        if "rarity" in loc_data:
+        if isinstance(loc_data, dict) and "rarity" in loc_data:
             location_rarity[loc_id] = loc_data["rarity"]
         
-        if "levels" in loc_data:
-            for level, level_data in loc_data["levels"].items():
-                cost = level_data.get("cost", "")
-                row[f"level_{level}"] = f"{cost:,}".replace(",", " ") if cost else ""
+        # Добавляем данные о стоимости уровней
+        if isinstance(loc_data, dict) and "levels" in loc_data:
+            levels_data = loc_data["levels"]
+            
+            for level in range(1, max_level + 1):
+                level_str = str(level)
+                
+                if level_str in levels_data:
+                    level_data = levels_data[level_str]
+                    
+                    # Извлекаем стоимость в зависимости от формата данных
+                    if isinstance(level_data, dict) and "cost" in level_data:
+                        cost = level_data["cost"]
+                    else:
+                        # Пробуем получить атрибут cost, если level_data - это объект
+                        try:
+                            cost = getattr(level_data, "cost", None)
+                        except:
+                            cost = None
+                    
+                    # Форматируем стоимость
+                    if cost is not None:
+                        row[f"level_{level}"] = f"{int(cost):,}".replace(",", " ")
+                    else:
+                        row[f"level_{level}"] = ""
+                else:
+                    row[f"level_{level}"] = ""
         
         table_data.append(row)
+    
+    print(f"DEBUG: Generated {len(table_data)} rows for location cost table")
     
     # Создаем условные стили для разных типов редкости
     style_data_conditional = []
     
-    # Цвета для разных типов редкости (мягкие, не броские оттенки)
+    # Цвета для разных типов редкости
     rarity_colors = {
-        "common": "#f0f8ff",  # Светло-голубой (почти белый) для обычных локаций
-        "rare": "#f5f0ff",    # Светло-фиолетовый (очень бледный) для редких
-        "legendary": "#fffbeb" # Светло-золотой (кремовый) для легендарных
+        "common": "#f0f8ff",  # Светло-голубой для обычных локаций
+        "rare": "#f5f0ff",    # Светло-фиолетовый для редких
+        "legendary": "#fffbeb" # Светло-золотой для легендарных
     }
     
     # Добавляем условные стили для каждого типа локаций
     for loc_id, rarity in location_rarity.items():
-        # Получаем соответствующий цвет для данной редкости
-        color = rarity_colors.get(rarity.lower(), "#ffffff")
+        # Преобразуем rarity в строку, если это enum
+        if hasattr(rarity, "__str__"):
+            rarity_str = str(rarity).lower().split('.')[-1]
+        else:
+            rarity_str = str(rarity).lower()
         
-        # Добавляем условный стиль для всех ячеек в строке этой локации
+        # Получаем соответствующий цвет
+        color = rarity_colors.get(rarity_str, "#ffffff")
+        
+        # Добавляем условный стиль
         style_data_conditional.append({
             "if": {"filter_query": f"{{location_id}} = \"Location {loc_id}\""},
             "backgroundColor": color
