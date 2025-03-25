@@ -1,0 +1,39 @@
+# Байткод Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Дистрибутивы и пакеты
+*.so
+dist/
+build/
+*.egg-info/
+
+# Виртуальное окружение
+venv/
+env/
+ENV/
+.env/
+
+# Файлы IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Кеш и временные файлы
+.DS_Store
+.cache/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Логи и данные
+*.log
+logs/
+*.csv
+*.dat
+*.out
+
+# Специфические для Dash
+.dash_debug.log 
